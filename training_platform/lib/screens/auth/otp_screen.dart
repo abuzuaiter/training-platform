@@ -1,36 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../widgets/country_code_picker.dart';
-import 'otp_screen.dart';
+import 'signup_step2_screen.dart';
 
-class SignupStep1Screen extends StatefulWidget {
-  const SignupStep1Screen({super.key});
+class OtpScreen extends StatefulWidget {
+  final String phone;
+  const OtpScreen({super.key, required this.phone});
 
   @override
-  State<SignupStep1Screen> createState() => _SignupStep1ScreenState();
+  State<OtpScreen> createState() => _OtpScreenState();
 }
 
-class _SignupStep1ScreenState extends State<SignupStep1Screen> {
-  final _phoneController = TextEditingController();
-  Country _selectedCountry = countries.firstWhere((c) => c.code == 'QA');
+class _OtpScreenState extends State<OtpScreen> {
+  final _otpController = TextEditingController();
   bool _isLoading = false;
 
-  Future<void> _sendOtp() async {
-    if (_phoneController.text.trim().isEmpty) {
+  Future<void> _verify() async {
+    if (_otpController.text.trim().length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your phone number'),
+        const SnackBar(content: Text('Please enter the 6-digit code'),
             backgroundColor: Colors.red),
       );
       return;
     }
     setState(() => _isLoading = true);
-    final phone = '${_selectedCountry.dialCode}${_phoneController.text.trim()}';
     try {
-      await Supabase.instance.client.auth.signInWithOtp(phone: phone);
+      await Supabase.instance.client.auth.verifyOTP(
+        phone: widget.phone,
+        token: _otpController.text.trim(),
+        type: OtpType.sms,
+      );
       if (mounted) {
-        Navigator.push(
+        Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => OtpScreen(phone: phone)),
+          MaterialPageRoute(
+            builder: (_) => SignupStep2Screen(phone: widget.phone),
+          ),
         );
       }
     } on AuthException catch (e) {
@@ -81,15 +85,15 @@ class _SignupStep1ScreenState extends State<SignupStep1Screen> {
                       CircleAvatar(
                         radius: 40,
                         backgroundColor: Color(0xFF0C447C),
-                        child: Icon(Icons.fitness_center_rounded,
+                        child: Icon(Icons.sms_rounded,
                             color: Color(0xFF85B7EB), size: 40),
                       ),
                       SizedBox(height: 16),
-                      Text('Training Platform',
+                      Text('Verify Phone',
                           style: TextStyle(fontSize: 22,
                               fontWeight: FontWeight.w700, color: Colors.white)),
                       SizedBox(height: 4),
-                      Text('Manage your training journey',
+                      Text('Enter the code sent to your phone',
                           style: TextStyle(fontSize: 13, color: Color(0xFF85B7EB))),
                     ],
                   ),
@@ -99,52 +103,43 @@ class _SignupStep1ScreenState extends State<SignupStep1Screen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Create account',
+                      const Text('Verification code',
                           style: TextStyle(fontSize: 20,
                               fontWeight: FontWeight.w700, color: Color(0xFF1A1A1A))),
                       const SizedBox(height: 4),
-                      const Text('Step 1 of 2 — Enter your phone number',
-                          style: TextStyle(fontSize: 13, color: Color(0xFF8E8E93))),
-                      const SizedBox(height: 8),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: const LinearProgressIndicator(
-                          value: 0.5,
-                          backgroundColor: Color(0xFFE5E5EA),
-                          color: Color(0xFF185FA5),
-                          minHeight: 4,
-                        ),
-                      ),
+                      Text('We sent a 6-digit code to ${widget.phone}',
+                          style: const TextStyle(fontSize: 13, color: Color(0xFF8E8E93))),
                       const SizedBox(height: 24),
-                      const Text('PHONE NUMBER',
+                      const Text('OTP CODE',
                           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
                               color: Color(0xFF444441), letterSpacing: 0.3)),
                       const SizedBox(height: 6),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFAFAFA),
-                          border: Border.all(color: const Color(0xFF185FA5), width: 1.5),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            CountryCodePicker(
-                              selectedCountry: _selectedCountry,
-                              onChanged: (c) => setState(() => _selectedCountry = c),
-                            ),
-                            Expanded(
-                              child: TextField(
-                                controller: _phoneController,
-                                keyboardType: TextInputType.phone,
-                                decoration: const InputDecoration(
-                                  hintText: 'Phone number',
-                                  hintStyle: TextStyle(color: Color(0xFFC7C7CC)),
-                                  border: InputBorder.none,
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 14),
-                                ),
-                              ),
-                            ),
-                          ],
+                      TextField(
+                        controller: _otpController,
+                        keyboardType: TextInputType.number,
+                        maxLength: 6,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 24,
+                            fontWeight: FontWeight.w700, letterSpacing: 8),
+                        decoration: InputDecoration(
+                          hintText: '------',
+                          hintStyle: const TextStyle(color: Color(0xFFC7C7CC),
+                              letterSpacing: 8),
+                          counterText: '',
+                          filled: true,
+                          fillColor: const Color(0xFFFAFAFA),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: Color(0xFFE5E5EA), width: 1.5)),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: Color(0xFFE5E5EA), width: 1.5)),
+                          focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: Color(0xFF185FA5), width: 1.5)),
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -152,7 +147,7 @@ class _SignupStep1ScreenState extends State<SignupStep1Screen> {
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton(
-                          onPressed: _isLoading ? null : _sendOtp,
+                          onPressed: _isLoading ? null : _verify,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF185FA5),
                             foregroundColor: Colors.white,
@@ -163,7 +158,7 @@ class _SignupStep1ScreenState extends State<SignupStep1Screen> {
                           child: _isLoading
                               ? const CircularProgressIndicator(
                                   color: Colors.white, strokeWidth: 2)
-                              : const Text('Send Code',
+                              : const Text('Verify',
                                   style: TextStyle(fontSize: 15,
                                       fontWeight: FontWeight.w700)),
                         ),
@@ -172,19 +167,10 @@ class _SignupStep1ScreenState extends State<SignupStep1Screen> {
                       Center(
                         child: GestureDetector(
                           onTap: () => Navigator.pop(context),
-                          child: RichText(
-                            text: const TextSpan(
-                              text: 'Already have an account? ',
-                              style: TextStyle(fontSize: 13, color: Color(0xFF8E8E93)),
-                              children: [
-                                TextSpan(
-                                  text: 'Login',
-                                  style: TextStyle(color: Color(0xFF185FA5),
-                                      fontWeight: FontWeight.w600),
-                                ),
-                              ],
-                            ),
-                          ),
+                          child: const Text('Change phone number',
+                              style: TextStyle(fontSize: 13,
+                                  color: Color(0xFF185FA5),
+                                  fontWeight: FontWeight.w500)),
                         ),
                       ),
                     ],
