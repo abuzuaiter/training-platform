@@ -1,37 +1,51 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../widgets/country_code_picker.dart';
-import 'signup_step1_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class SignupScreen extends StatefulWidget {
+  const SignupScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _SignupScreenState extends State<SignupScreen> {
+  final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
   bool _useEmail = false;
   Country _selectedCountry = countries.firstWhere((c) => c.code == 'QA');
 
-  Future<void> _login() async {
+  Future<void> _signup() async {
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwords do not match'), backgroundColor: Colors.red),
+      );
+      return;
+    }
     setState(() => _isLoading = true);
     try {
       if (_useEmail) {
-        await Supabase.instance.client.auth.signInWithPassword(
+        await Supabase.instance.client.auth.signUp(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
+          data: {'full_name': _nameController.text.trim()},
         );
       } else {
-        await Supabase.instance.client.auth.signInWithPassword(
+        await Supabase.instance.client.auth.signUp(
           phone: '${_selectedCountry.dialCode}${_phoneController.text.trim()}',
           password: _passwordController.text.trim(),
+          data: {'full_name': _nameController.text.trim()},
         );
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Account created successfully!'), backgroundColor: Colors.green),
+        );
+        Navigator.pop(context);
       }
     } on AuthException catch (e) {
       if (mounted) {
@@ -66,6 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             child: Column(
               children: [
+                // Header
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.fromLTRB(32, 40, 32, 32),
@@ -76,40 +91,75 @@ class _LoginScreenState extends State<LoginScreen> {
                       topRight: Radius.circular(28),
                     ),
                   ),
-                  child: const Column(
+                  child: Column(
                     children: [
-                      CircleAvatar(
-                        radius: 40,
-                        backgroundColor: Color(0xFF0C447C),
-                        child: Icon(Icons.fitness_center_rounded,
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0C447C),
+                          borderRadius: BorderRadius.circular(40),
+                        ),
+                        child: const Icon(Icons.fitness_center_rounded,
                             color: Color(0xFF85B7EB), size: 40),
                       ),
-                      SizedBox(height: 16),
-                      Text('Training Platform',
+                      const SizedBox(height: 16),
+                      const Text('Training Platform',
                           style: TextStyle(fontSize: 22,
                               fontWeight: FontWeight.w700, color: Colors.white)),
-                      SizedBox(height: 4),
-                      Text('Manage your training journey',
+                      const SizedBox(height: 4),
+                      const Text('Manage your training journey',
                           style: TextStyle(fontSize: 13, color: Color(0xFF85B7EB))),
                     ],
                   ),
                 ),
+
+                // Form
                 Padding(
                   padding: const EdgeInsets.fromLTRB(28, 28, 28, 32),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Welcome back',
+                      const Text('Create account',
                           style: TextStyle(fontSize: 20,
                               fontWeight: FontWeight.w700, color: Color(0xFF1A1A1A))),
                       const SizedBox(height: 4),
-                      const Text('Sign in to continue',
+                      const Text('Fill in your details to get started',
                           style: TextStyle(fontSize: 13, color: Color(0xFF8E8E93))),
                       const SizedBox(height: 24),
+
+                      // Full Name
+                      const Text('FULL NAME',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                              color: Color(0xFF444441), letterSpacing: 0.3)),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: _nameController,
+                        decoration: InputDecoration(
+                          hintText: 'Your full name',
+                          hintStyle: const TextStyle(color: Color(0xFFC7C7CC)),
+                          prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF8E8E93)),
+                          filled: true,
+                          fillColor: const Color(0xFFFAFAFA),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFFE5E5EA), width: 1.5)),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFFE5E5EA), width: 1.5)),
+                          focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFF185FA5), width: 1.5)),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Phone or Email
                       Text(_useEmail ? 'EMAIL' : 'PHONE NUMBER',
                           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
                               color: Color(0xFF444441), letterSpacing: 0.3)),
                       const SizedBox(height: 6),
+
                       if (!_useEmail)
                         Container(
                           decoration: BoxDecoration(
@@ -159,7 +209,22 @@ class _LoginScreenState extends State<LoginScreen> {
                                 borderSide: const BorderSide(color: Color(0xFF185FA5), width: 1.5)),
                           ),
                         ),
+                      const SizedBox(height: 8),
+
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: GestureDetector(
+                          onTap: () => setState(() => _useEmail = !_useEmail),
+                          child: Text(
+                            _useEmail ? 'Use phone instead' : 'Use email instead',
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF185FA5),
+                                fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 14),
+
+                      // Password
                       const Text('PASSWORD',
                           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
                               color: Color(0xFF444441), letterSpacing: 0.3)),
@@ -184,24 +249,41 @@ class _LoginScreenState extends State<LoginScreen> {
                               borderSide: const BorderSide(color: Color(0xFF185FA5), width: 1.5)),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: GestureDetector(
-                          onTap: () => setState(() => _useEmail = !_useEmail),
-                          child: Text(
-                            _useEmail ? 'Use phone instead' : 'Use email instead',
-                            style: const TextStyle(fontSize: 12, color: Color(0xFF185FA5),
-                                fontWeight: FontWeight.w500),
-                          ),
+                      const SizedBox(height: 14),
+
+                      // Confirm Password
+                      const Text('CONFIRM PASSWORD',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                              color: Color(0xFF444441), letterSpacing: 0.3)),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: _confirmPasswordController,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          hintText: '••••••••',
+                          hintStyle: const TextStyle(color: Color(0xFFC7C7CC)),
+                          prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF8E8E93)),
+                          filled: true,
+                          fillColor: const Color(0xFFFAFAFA),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFFE5E5EA), width: 1.5)),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFFE5E5EA), width: 1.5)),
+                          focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Color(0xFF185FA5), width: 1.5)),
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
+
+                      // Sign up button
                       SizedBox(
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton(
-                          onPressed: _isLoading ? null : _login,
+                          onPressed: _isLoading ? null : _signup,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF185FA5),
                             foregroundColor: Colors.white,
@@ -212,30 +294,28 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: _isLoading
                               ? const CircularProgressIndicator(
                                   color: Colors.white, strokeWidth: 2)
-                              : const Text('Login',
+                              : const Text('Create Account',
                                   style: TextStyle(fontSize: 15,
                                       fontWeight: FontWeight.w700)),
                         ),
                       ),
                       const SizedBox(height: 16),
+
                       Center(
-                        child: RichText(
-                          text: TextSpan(
-                            text: "Don't have an account? ",
-                            style: const TextStyle(fontSize: 13, color: Color(0xFF8E8E93)),
-                            children: [
-                              TextSpan(
-                                text: 'Sign up',
-                                style: const TextStyle(
-                                    color: Color(0xFF185FA5),
-                                    fontWeight: FontWeight.w600),
-                                recognizer: TapGestureRecognizer()
-                                  ..onTap = () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (_) => const SignupStep1Screen())),
-                              ),
-                            ],
+                        child: GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: RichText(
+                            text: const TextSpan(
+                              text: 'Already have an account? ',
+                              style: TextStyle(fontSize: 13, color: Color(0xFF8E8E93)),
+                              children: [
+                                TextSpan(
+                                  text: 'Login',
+                                  style: TextStyle(color: Color(0xFF185FA5),
+                                      fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
