@@ -11,23 +11,35 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> _organizations = [];
   bool _isLoading = true;
+  String _fullName = 'there';
 
   @override
   void initState() {
     super.initState();
-    _loadOrganizations();
+    _loadData();
   }
 
-  Future<void> _loadOrganizations() async {
+  Future<void> _loadData() async {
     try {
       final userId = Supabase.instance.client.auth.currentUser!.id;
+
+      // Load user profile
+      final profile = await Supabase.instance.client
+          .from('users')
+          .select('full_name')
+          .eq('id', userId)
+          .single();
+
+      // Load organizations
       final data = await Supabase.instance.client
           .from('organization_members')
           .select('organization_id, role, organizations(id, name, logo_url)')
           .eq('user_id', userId)
           .eq('status', 'active');
+
       if (mounted) {
         setState(() {
+          _fullName = profile['full_name'] ?? 'there';
           _organizations = List<Map<String, dynamic>>.from(data);
           _isLoading = false;
         });
@@ -43,9 +55,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = Supabase.instance.client.auth.currentUser;
-    final name = user?.userMetadata?['full_name'] ?? 'User';
-
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       appBar: AppBar(
@@ -54,7 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Hello, ${name.toString().split(' ').first} 👋',
+            Text('Hello, ${_fullName.split(' ').first} 👋',
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700,
                     color: Color(0xFF1A1A1A))),
             const Text('Training Platform',
@@ -90,22 +99,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: const Color(0xFFEBF3FC),
                 borderRadius: BorderRadius.circular(60),
               ),
-              child: const Icon(Icons.business_outlined,
+              child: const Icon(Icons.calendar_today_outlined,
                   size: 60, color: Color(0xFF185FA5)),
             ),
             const SizedBox(height: 24),
-            const Text('No organizations yet',
+            const Text("You're all caught up!",
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700,
                     color: Color(0xFF1A1A1A))),
             const SizedBox(height: 8),
             const Text(
-              'You will receive an invitation\nto join an organization soon.',
+              'No upcoming sessions at the moment.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: Color(0xFF8E8E93), height: 1.6),
             ),
             const SizedBox(height: 32),
             OutlinedButton.icon(
-              onPressed: _loadOrganizations,
+              onPressed: _loadData,
               icon: const Icon(Icons.refresh_rounded, size: 18),
               label: const Text('Refresh'),
               style: OutlinedButton.styleFrom(
@@ -124,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildOrganizations() {
     return RefreshIndicator(
-      onRefresh: _loadOrganizations,
+      onRefresh: _loadData,
       color: const Color(0xFF185FA5),
       child: ListView.builder(
         padding: const EdgeInsets.all(16),

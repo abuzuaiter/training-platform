@@ -1,8 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../widgets/country_code_picker.dart';
-import 'signup_step1_screen.dart';
+import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,36 +11,36 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
-  bool _useEmail = false;
-  Country _selectedCountry = countries.firstWhere((c) => c.code == 'QA');
 
   Future<void> _login() async {
+    if (_emailController.text.trim().isEmpty) {
+      _showError('Please enter your email');
+      return;
+    }
+    if (_passwordController.text.isEmpty) {
+      _showError('Please enter your password');
+      return;
+    }
     setState(() => _isLoading = true);
     try {
-      if (_useEmail) {
-        await Supabase.instance.client.auth.signInWithPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
-      } else {
-        await Supabase.instance.client.auth.signInWithPassword(
-          phone: '${_selectedCountry.dialCode}${_phoneController.text.trim()}',
-          password: _passwordController.text.trim(),
-        );
-      }
+      await Supabase.instance.client.auth.signInWithPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
     } on AuthException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: Colors.red),
-        );
-      }
+      if (mounted) _showError(e.message);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.red),
+    );
   }
 
   @override
@@ -106,60 +105,37 @@ class _LoginScreenState extends State<LoginScreen> {
                       const Text('Sign in to continue',
                           style: TextStyle(fontSize: 13, color: Color(0xFF8E8E93))),
                       const SizedBox(height: 24),
-                      Text(_useEmail ? 'EMAIL' : 'PHONE NUMBER',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+
+                      const Text('EMAIL',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
                               color: Color(0xFF444441), letterSpacing: 0.3)),
                       const SizedBox(height: 6),
-                      if (!_useEmail)
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFAFAFA),
-                            border: Border.all(color: const Color(0xFF185FA5), width: 1.5),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              CountryCodePicker(
-                                selectedCountry: _selectedCountry,
-                                onChanged: (c) => setState(() => _selectedCountry = c),
-                              ),
-                              Expanded(
-                                child: TextField(
-                                  controller: _phoneController,
-                                  keyboardType: TextInputType.phone,
-                                  decoration: const InputDecoration(
-                                    hintText: 'Phone number',
-                                    hintStyle: TextStyle(color: Color(0xFFC7C7CC)),
-                                    border: InputBorder.none,
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 14),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      else
-                        TextField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: InputDecoration(
-                            hintText: 'your@email.com',
-                            hintStyle: const TextStyle(color: Color(0xFFC7C7CC)),
-                            prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF8E8E93)),
-                            filled: true,
-                            fillColor: const Color(0xFFFAFAFA),
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFFE5E5EA), width: 1.5)),
-                            enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFFE5E5EA), width: 1.5)),
-                            focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFF185FA5), width: 1.5)),
-                          ),
+                      TextField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          hintText: 'your@email.com',
+                          hintStyle: const TextStyle(color: Color(0xFFC7C7CC)),
+                          prefixIcon: const Icon(Icons.email_outlined,
+                              color: Color(0xFF8E8E93)),
+                          filled: true,
+                          fillColor: const Color(0xFFFAFAFA),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: Color(0xFFE5E5EA), width: 1.5)),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: Color(0xFFE5E5EA), width: 1.5)),
+                          focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: Color(0xFF185FA5), width: 1.5)),
                         ),
+                      ),
                       const SizedBox(height: 14),
+
                       const Text('PASSWORD',
                           style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
                               color: Color(0xFF444441), letterSpacing: 0.3)),
@@ -170,33 +146,26 @@ class _LoginScreenState extends State<LoginScreen> {
                         decoration: InputDecoration(
                           hintText: '••••••••',
                           hintStyle: const TextStyle(color: Color(0xFFC7C7CC)),
-                          prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF8E8E93)),
+                          prefixIcon: const Icon(Icons.lock_outline,
+                              color: Color(0xFF8E8E93)),
                           filled: true,
                           fillColor: const Color(0xFFFAFAFA),
                           border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFE5E5EA), width: 1.5)),
+                              borderSide: const BorderSide(
+                                  color: Color(0xFFE5E5EA), width: 1.5)),
                           enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFE5E5EA), width: 1.5)),
+                              borderSide: const BorderSide(
+                                  color: Color(0xFFE5E5EA), width: 1.5)),
                           focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFF185FA5), width: 1.5)),
+                              borderSide: const BorderSide(
+                                  color: Color(0xFF185FA5), width: 1.5)),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: GestureDetector(
-                          onTap: () => setState(() => _useEmail = !_useEmail),
-                          child: Text(
-                            _useEmail ? 'Use phone instead' : 'Use email instead',
-                            style: const TextStyle(fontSize: 12, color: Color(0xFF185FA5),
-                                fontWeight: FontWeight.w500),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
+
                       SizedBox(
                         width: double.infinity,
                         height: 50,
@@ -222,7 +191,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: RichText(
                           text: TextSpan(
                             text: "Don't have an account? ",
-                            style: const TextStyle(fontSize: 13, color: Color(0xFF8E8E93)),
+                            style: const TextStyle(fontSize: 13,
+                                color: Color(0xFF8E8E93)),
                             children: [
                               TextSpan(
                                 text: 'Sign up',
@@ -233,7 +203,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ..onTap = () => Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                          builder: (_) => const SignupStep1Screen())),
+                                          builder: (_) => const SignupScreen())),
                               ),
                             ],
                           ),
