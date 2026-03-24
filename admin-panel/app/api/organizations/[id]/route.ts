@@ -8,10 +8,31 @@ const supabaseAdmin = createClient(
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { data, error } = await supabaseAdmin
+  
+  const { data: org, error } = await supabaseAdmin
     .from('organizations').select('*').eq('id', id).single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
+
+  const { data: adminMember } = await supabaseAdmin
+    .from('organization_members')
+    .select('user_id')
+    .eq('organization_id', id)
+    .eq('role', 'admin')
+    .eq('status', 'active')
+    .limit(1)
+    .maybeSingle()
+
+  let admin = null
+  if (adminMember?.user_id) {
+    const { data: adminUser } = await supabaseAdmin
+      .from('users')
+      .select('full_name, email')
+      .eq('id', adminMember.user_id)
+      .single()
+    admin = adminUser
+  }
+
+  return NextResponse.json({ ...org, admin })
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

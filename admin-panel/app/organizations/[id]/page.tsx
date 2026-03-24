@@ -19,6 +19,11 @@ interface Organization {
   status: string
 }
 
+interface Admin {
+  full_name: string
+  email: string | null
+}
+
 export default function ManageOrgPage() {
   const params = useParams()
   const id = params.id as string
@@ -28,6 +33,10 @@ export default function ManageOrgPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
+  const [currentAdmin, setCurrentAdmin] = useState<Admin | null>(null)
+  const [newAdminEmail, setNewAdminEmail] = useState('')
+  const [adminSaving, setAdminSaving] = useState(false)
+  const [adminMessage, setAdminMessage] = useState('')
 
   useEffect(() => { if (id) loadOrg() }, [id])
 
@@ -43,6 +52,7 @@ export default function ManageOrgPage() {
       mobile: data.mobile || '',
       category: data.category || '',
     })
+    if (data.admin) setCurrentAdmin(data.admin)
     setLoading(false)
   }
 
@@ -62,6 +72,26 @@ export default function ManageOrgPage() {
       setMessage(data.error || 'Something went wrong')
     }
     setSaving(false)
+  }
+
+  async function handleChangeAdmin() {
+    if (!newAdminEmail) { setAdminMessage('Please enter an email'); return }
+    setAdminSaving(true)
+    setAdminMessage('')
+    const res = await fetch(`/api/organizations/${id}/admin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: newAdminEmail })
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setAdminMessage('Admin updated successfully!')
+      setNewAdminEmail('')
+      loadOrg()
+    } else {
+      setAdminMessage(data.error || 'Something went wrong')
+    }
+    setAdminSaving(false)
   }
 
   async function toggleStatus() {
@@ -89,8 +119,8 @@ export default function ManageOrgPage() {
         </div>
       </nav>
 
-      <div className="max-w-3xl mx-auto px-6 py-8">
-        <div className="flex items-center justify-between mb-6">
+      <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
+        <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{org.name}</h1>
             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${org.status === 'active' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
@@ -104,7 +134,7 @@ export default function ManageOrgPage() {
         </div>
 
         {message && (
-          <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-medium ${message.includes('success') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+          <div className={`px-4 py-3 rounded-xl text-sm font-medium ${message.includes('success') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
             {message}
           </div>
         )}
@@ -156,6 +186,42 @@ export default function ManageOrgPage() {
             <button onClick={() => router.push('/organizations')}
               className="border border-gray-200 text-gray-600 px-6 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">
               Back
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-200 p-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Admin</h2>
+          {currentAdmin ? (
+            <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl mb-4">
+              <div className="w-8 h-8 bg-blue-200 rounded-full flex items-center justify-center text-blue-700 font-semibold text-sm">
+                {currentAdmin.full_name?.charAt(0)}
+              </div>
+              <div>
+                <p className="font-medium text-gray-900 text-sm">{currentAdmin.full_name}</p>
+                <p className="text-xs text-gray-500">{currentAdmin.email}</p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 mb-4">No admin assigned</p>
+          )}
+
+          {adminMessage && (
+            <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-medium ${adminMessage.includes('success') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+              {adminMessage}
+            </div>
+          )}
+
+          <label className="block text-xs font-semibold text-gray-500 mb-1">
+            {currentAdmin ? 'CHANGE ADMIN EMAIL' : 'ASSIGN ADMIN EMAIL'}
+          </label>
+          <div className="flex gap-3">
+            <input value={newAdminEmail} onChange={e => setNewAdminEmail(e.target.value)}
+              className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+              placeholder="admin@club.com" type="email" />
+            <button onClick={handleChangeAdmin} disabled={adminSaving}
+              className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50">
+              {adminSaving ? 'Saving...' : 'Assign'}
             </button>
           </div>
         </div>
