@@ -31,12 +31,29 @@ interface Member {
   user: { full_name: string; email: string | null; mobile: string | null }
 }
 
+interface Course {
+  id: string
+  name: string
+  enrollment_type: string
+}
+
+interface Enrollment {
+  id: string
+  user_id: string
+  course_id: string
+  subscription_price: number | null
+  users: { full_name: string; email: string | null }
+  courses: { name: string; enrollment_type: string }
+}
+
 export default function ManageOrgPage() {
   const params = useParams()
   const id = params.id as string
   const router = useRouter()
   const [org, setOrg] = useState<Organization | null>(null)
   const [members, setMembers] = useState<Member[]>([])
+  const [courses, setCourses] = useState<Course[]>([])
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([])
   const [form, setForm] = useState({ name: '', name_ar: '', email: '', phone: '', mobile: '', category: '' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -49,8 +66,11 @@ export default function ManageOrgPage() {
   const [memberSaving, setMemberSaving] = useState(false)
   const [memberMessage, setMemberMessage] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [enrollForm, setEnrollForm] = useState({ user_id: '', course_id: '', subscription_price: '' })
+  const [enrollSaving, setEnrollSaving] = useState(false)
+  const [enrollMessage, setEnrollMessage] = useState('')
 
-  useEffect(() => { if (id) { loadOrg(); loadMembers() } }, [id])
+  useEffect(() => { if (id) { loadOrg(); loadMembers(); loadCourses(); loadEnrollments() } }, [id])
 
   async function loadOrg() {
     const res = await fetch(`/api/organizations/${id}`)
@@ -70,12 +90,23 @@ export default function ManageOrgPage() {
     setMembers(data || [])
   }
 
+  async function loadCourses() {
+    const res = await fetch(`/api/courses?org_id=${id}`)
+    const data = await res.json()
+    setCourses(data || [])
+  }
+
+  async function loadEnrollments() {
+    const res = await fetch(`/api/organizations/${id}/enrollments`)
+    const data = await res.json()
+    setEnrollments(data || [])
+  }
+
   async function handleSave() {
     if (!form.name) { setMessage('Name is required'); return }
     setSaving(true)
     const res = await fetch(`/api/organizations/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form)
     })
     if (res.ok) { setMessage('Saved successfully!'); loadOrg() }
@@ -87,12 +118,11 @@ export default function ManageOrgPage() {
     if (!newAdminEmail) { setAdminMessage('Please enter an email'); return }
     setAdminSaving(true)
     const res = await fetch(`/api/organizations/${id}/admin`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: newAdminEmail })
     })
     const data = await res.json()
-    if (res.ok) { setAdminMessage('Admin assigned successfully!'); setNewAdminEmail(''); loadOrg(); loadMembers() }
+    if (res.ok) { setAdminMessage('Admin assigned!'); setNewAdminEmail(''); loadOrg(); loadMembers() }
     else setAdminMessage(data.error || 'Error')
     setAdminSaving(false)
   }
@@ -101,43 +131,60 @@ export default function ManageOrgPage() {
     if (!newMemberEmail) { setMemberMessage('Please enter an email'); return }
     setMemberSaving(true)
     const res = await fetch(`/api/organizations/${id}/members`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: newMemberEmail, role: newMemberRole })
     })
     const data = await res.json()
-    if (res.ok) { setMemberMessage('Member added successfully!'); setNewMemberEmail(''); loadMembers() }
+    if (res.ok) { setMemberMessage('Member added!'); setNewMemberEmail(''); loadMembers() }
     else setMemberMessage(data.error || 'Error')
     setMemberSaving(false)
   }
 
   async function handleRemoveMember(user_id: string) {
     await fetch(`/api/organizations/${id}/members`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id })
     })
     setDeleteConfirm(null)
     loadMembers()
   }
 
+  async function handleEnroll() {
+    if (!enrollForm.user_id || !enrollForm.course_id) {
+      setEnrollMessage('Please select user and course')
+      return
+    }
+    setEnrollSaving(true)
+    const res = await fetch(`/api/organizations/${id}/enrollments`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: enrollForm.user_id,
+        course_id: enrollForm.course_id,
+        subscription_price: enrollForm.subscription_price ? parseFloat(enrollForm.subscription_price) : null
+      })
+    })
+    const data = await res.json()
+    if (res.ok) { setEnrollMessage('Enrolled successfully!'); setEnrollForm({ user_id: '', course_id: '', subscription_price: '' }); loadEnrollments() }
+    else setEnrollMessage(data.error || 'Error')
+    setEnrollSaving(false)
+  }
+
   async function toggleStatus() {
     const newStatus = org?.status === 'active' ? 'inactive' : 'active'
     await fetch(`/api/organizations/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus })
     })
     loadOrg()
   }
 
   const roleColor: Record<string, string> = {
-    admin: 'bg-red-50 text-red-600',
-    coach: 'bg-blue-50 text-blue-600',
-    receptionist: 'bg-purple-50 text-purple-600',
-    trainee: 'bg-green-50 text-green-600',
+    admin: 'bg-red-50 text-red-600', coach: 'bg-blue-50 text-blue-600',
+    receptionist: 'bg-purple-50 text-purple-600', trainee: 'bg-green-50 text-green-600',
     parent: 'bg-amber-50 text-amber-600',
   }
+
+  const trainees = members.filter(m => m.role === 'trainee')
 
   if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">Loading...</div>
   if (!org) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">Not found</div>
@@ -149,6 +196,8 @@ export default function ManageOrgPage() {
           <Link href="/" className="text-gray-400 hover:text-gray-600 text-sm">Dashboard</Link>
           <span className="text-gray-300">/</span>
           <Link href="/organizations" className="text-gray-400 hover:text-gray-600 text-sm">Organizations</Link>
+          <span className="text-gray-300">/</span>
+          <Link href={`/organizations/${id}`} className="text-gray-400 hover:text-gray-600 text-sm">Manage</Link>
           <span className="text-gray-300">/</span>
           <span className="text-gray-900 font-semibold text-sm">{org.name}</span>
         </div>
@@ -224,7 +273,7 @@ export default function ManageOrgPage() {
           </div>
         </div>
 
-        {/* Admin Section */}
+        {/* Admin */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6">
           <h2 className="text-lg font-bold text-gray-900 mb-4">Admin</h2>
           {org.admin ? (
@@ -241,13 +290,10 @@ export default function ManageOrgPage() {
             <p className="text-sm text-gray-400 mb-4">No admin assigned</p>
           )}
           {adminMessage && (
-            <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-medium ${adminMessage.includes('success') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+            <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-medium ${adminMessage.includes('success') || adminMessage.includes('assigned') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
               {adminMessage}
             </div>
           )}
-          <label className="block text-xs font-semibold text-gray-500 mb-1">
-            {org.admin ? 'ADD ANOTHER ADMIN' : 'ASSIGN ADMIN EMAIL'}
-          </label>
           <div className="flex gap-3">
             <input value={newAdminEmail} onChange={e => setNewAdminEmail(e.target.value)}
               className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
@@ -259,17 +305,21 @@ export default function ManageOrgPage() {
           </div>
         </div>
 
-        {/* Members Section */}
+        {/* Members */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Members ({members.length})</h2>
-
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-gray-900">Members ({members.length})</h2>
+            <a href={`/organizations/${id}/customers`}
+              className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
+              👥 Customers
+            </a>
+          </div>
           {memberMessage && (
-            <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-medium ${memberMessage.includes('success') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+            <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-medium ${memberMessage.includes('added') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
               {memberMessage}
             </div>
           )}
-
-          <div className="flex gap-3 mb-6">
+          <div className="flex gap-3 mb-4">
             <input value={newMemberEmail} onChange={e => setNewMemberEmail(e.target.value)}
               className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
               placeholder="member@club.com" type="email" />
@@ -282,7 +332,6 @@ export default function ManageOrgPage() {
               {memberSaving ? 'Adding...' : '+ Add'}
             </button>
           </div>
-
           {members.length === 0 ? (
             <p className="text-sm text-gray-400">No members yet</p>
           ) : (
@@ -299,26 +348,73 @@ export default function ManageOrgPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleColor[m.role] || 'bg-gray-100 text-gray-600'}`}>
-                      {m.role}
-                    </span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleColor[m.role] || 'bg-gray-100 text-gray-600'}`}>{m.role}</span>
                     {deleteConfirm === m.user_id ? (
                       <div className="flex gap-1">
                         <button onClick={() => handleRemoveMember(m.user_id)}
-                          className="text-xs px-2 py-1 rounded-lg bg-red-600 text-white font-semibold">
-                          Confirm
-                        </button>
+                          className="text-xs px-2 py-1 rounded-lg bg-red-600 text-white font-semibold">Confirm</button>
                         <button onClick={() => setDeleteConfirm(null)}
-                          className="text-xs px-2 py-1 rounded-lg bg-gray-100 text-gray-600 font-semibold">
-                          Cancel
-                        </button>
+                          className="text-xs px-2 py-1 rounded-lg bg-gray-100 text-gray-600 font-semibold">Cancel</button>
                       </div>
                     ) : (
                       <button onClick={() => setDeleteConfirm(m.user_id)}
-                        className="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-600 font-semibold hover:bg-red-100">
-                        Remove
-                      </button>
+                        className="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-600 font-semibold hover:bg-red-100">Remove</button>
                     )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Enrollments */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Enrollments ({enrollments.length})</h2>
+          {enrollMessage && (
+            <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-medium ${enrollMessage.includes('success') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+              {enrollMessage}
+            </div>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+            <select value={enrollForm.user_id} onChange={e => setEnrollForm({...enrollForm, user_id: e.target.value})}
+              className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 bg-white">
+              <option value="">Select trainee...</option>
+              {trainees.map(m => <option key={m.user_id} value={m.user_id}>{m.user?.full_name}</option>)}
+            </select>
+            <select value={enrollForm.course_id} onChange={e => setEnrollForm({...enrollForm, course_id: e.target.value})}
+              className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 bg-white">
+              <option value="">Select course...</option>
+              {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <div className="flex gap-2">
+              <input value={enrollForm.subscription_price} onChange={e => setEnrollForm({...enrollForm, subscription_price: e.target.value})}
+                className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                placeholder="Price (QAR)" type="number" />
+              <button onClick={handleEnroll} disabled={enrollSaving}
+                className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50">
+                {enrollSaving ? '...' : '+ Enroll'}
+              </button>
+            </div>
+          </div>
+          {enrollments.length === 0 ? (
+            <p className="text-sm text-gray-400">No enrollments yet</p>
+          ) : (
+            <div className="space-y-2">
+              {enrollments.map(e => (
+                <div key={e.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div>
+                    <p className="font-medium text-gray-900 text-sm">{e.users?.full_name || '—'}</p>
+                    <p className="text-xs text-gray-400">{e.courses?.name}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {e.subscription_price && (
+                      <span className="text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-medium">
+                        {e.subscription_price} QAR
+                      </span>
+                    )}
+                    <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">
+                      {e.courses?.enrollment_type}
+                    </span>
                   </div>
                 </div>
               ))}
