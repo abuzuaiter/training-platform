@@ -26,6 +26,8 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [showBulk, setShowBulk] = useState(false)
+  const [search, setSearch] = useState('')
   const [form, setForm] = useState({
     full_name: '', email: '', mobile: '',
     has_guardian: false, guardian_email: '', guardian_mobile: '',
@@ -95,9 +97,53 @@ export default function CustomersPage() {
     loadCustomers()
   }
 
-  const subTypeLabel: Record<string, string> = {
-    session: 'حصة واحدة', weekly: 'أسبوعي', monthly: 'شهري'
+  function downloadTemplate() {
+    const csv = 'full_name,email,mobile,subscription_type,subscription_price,subscription_start,subscription_end,payment_status,has_guardian,guardian_email,guardian_mobile,notes\nJohn Doe,john@email.com,+97455123456,monthly,200,2026-01-01,2026-12-31,unpaid,false,,,\n'
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'customers_template.csv'
+    a.click()
   }
+
+  async function handleBulkUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const text = await file.text()
+    const lines = text.split('\n').filter(l => l.trim())
+    const headers = lines[0].split(',')
+    const rows = lines.slice(1)
+    let success = 0, failed = 0
+    for (const row of rows) {
+      const values = row.split(',')
+      const obj: any = {}
+      headers.forEach((h, i) => { obj[h.trim()] = values[i]?.trim() || null })
+      const res = await fetch(`/api/organizations/${id}/customers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...obj,
+          has_guardian: obj.has_guardian === 'true',
+          subscription_price: obj.subscription_price ? parseFloat(obj.subscription_price) : null
+        })
+      })
+      if (res.ok) success++ else failed++
+    }
+    setMessage(`Imported: ${success} success, ${failed} failed`)
+    setShowBulk(false)
+    loadCustomers()
+  }
+
+  const subTypeLabel: Record<string, string> = {
+    session: 'Session', weekly: 'Weekly', monthly: 'Monthly'
+  }
+
+  const filtered = customers.filter(c =>
+    c.full_name.toLowerCase().includes(search.toLowerCase()) ||
+    c.email?.toLowerCase().includes(search.toLowerCase()) ||
+    c.mobile?.includes(search)
+  )
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -118,14 +164,55 @@ export default function CustomersPage() {
             <h1 className="text-2xl font-bold text-gray-900">Customers</h1>
             <p className="text-gray-500 text-sm mt-1">{customers.length} customers total</p>
           </div>
-          <button onClick={() => { setShowForm(!showForm); setMessage('') }}
-            className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
-            + Add Customer
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => setShowBulk(!showBulk)}
+              className="border border-gray-200 text-gray-600 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">
+              📥 Bulk Import
+            </button>
+            <button onClick={() => { setShowForm(!showForm); setMessage('') }}
+              className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
+              + Add Customer
+            </button>
+          </div>
         </div>
 
+        {/* Search */}
+        <div className="mb-4">
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-blue-400"
+            placeholder="Search by name, email or mobile..." />
+        </div>
+
+        {/* Bulk Import */}
+        {showBulk && (
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-2">Bulk Import Customers</h2>
+            <p className="text-sm text-gray-500 mb-4">Upload a CSV file with customer data. Follow these steps:</p>
+            <ol className="list-decimal list-inside text-sm text-gray-600 space-y-1 mb-4">
+              <li>Download the CSV template below</li>
+              <li>Fill in the customer data (one customer per row)</li>
+              <li>Save the file and upload it here</li>
+              <li>The system will import all valid rows automatically</li>
+            </ol>
+            <div className="flex gap-3">
+              <button onClick={downloadTemplate}
+                className="border border-blue-300 text-blue-600 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-50 transition">
+                ⬇️ Download Template
+              </button>
+              <label className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition cursor-pointer">
+                📂 Upload CSV
+                <input type="file" accept=".csv" onChange={handleBulkUpload} className="hidden" />
+              </label>
+              <button onClick={() => setShowBulk(false)}
+                className="border border-gray-200 text-gray-600 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
         {message && (
-          <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-medium ${message.includes('success') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+          <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-medium ${message.includes('success') || message.includes('Imported') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
             {message}
           </div>
         )}
@@ -153,9 +240,9 @@ export default function CustomersPage() {
                 <label className="block text-xs font-semibold text-gray-500 mb-1">SUBSCRIPTION TYPE</label>
                 <select value={form.subscription_type} onChange={e => setForm({...form, subscription_type: e.target.value})}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 bg-white">
-                  <option value="session">حصة واحدة</option>
-                  <option value="weekly">أسبوعي</option>
-                  <option value="monthly">شهري</option>
+                  <option value="session">Session</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
                 </select>
               </div>
               <div>
@@ -184,7 +271,7 @@ export default function CustomersPage() {
               <div className="md:col-span-2">
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input type="checkbox" checked={form.has_guardian} onChange={e => setForm({...form, has_guardian: e.target.checked})} className="w-4 h-4 rounded accent-blue-600" />
-                  <span className="text-sm font-medium text-gray-700">Has a guardian (ولي أمر)</span>
+                  <span className="text-sm font-medium text-gray-700">Has a Guardian</span>
                 </label>
               </div>
               {form.has_guardian && (
@@ -222,11 +309,11 @@ export default function CustomersPage() {
 
         {loading ? (
           <div className="text-center py-12 text-gray-400">Loading...</div>
-        ) : customers.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">No customers yet</div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-12 text-gray-400">{search ? 'No results found' : 'No customers yet'}</div>
         ) : (
           <div className="grid gap-4">
-            {customers.map(c => (
+            {filtered.map(c => (
               <div key={c.id} className={`bg-white rounded-2xl border p-5 ${c.status === 'inactive' ? 'opacity-60 border-gray-100' : 'border-gray-200'}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
@@ -236,7 +323,6 @@ export default function CustomersPage() {
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-semibold text-gray-900">{c.full_name}</h3>
-                        
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.payment_status === 'paid' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
                           {c.payment_status === 'paid' ? 'Paid' : 'Unpaid'}
                         </span>
@@ -260,10 +346,10 @@ export default function CustomersPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap justify-end">
-                    <a href={`/organizations/${id}/customers/${c.id}`}
+                    <Link href={`/organizations/${id}/customers/${c.id}`}
                       className="text-xs px-3 py-1.5 rounded-lg font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100">
                       Manage
-                    </a>
+                    </Link>
                     <button onClick={() => togglePayment(c)}
                       className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${c.payment_status === 'paid' ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
                       {c.payment_status === 'paid' ? 'Mark Unpaid' : 'Mark Paid'}

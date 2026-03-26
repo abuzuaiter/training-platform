@@ -6,11 +6,17 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+export async function GET(_: NextRequest, { params }: { params: Promise<{ customerId: string }> }) {
+  const { customerId } = await params
+  const { data, error } = await supabaseAdmin.from('customers').select('*').eq('id', customerId).single()
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json(data)
+}
+
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ customerId: string }> }) {
   const { customerId } = await params
   const body = await req.json()
-  const { data, error } = await supabaseAdmin
-    .from('customers').update(body).eq('id', customerId).select().single()
+  const { data, error } = await supabaseAdmin.from('customers').update(body).eq('id', customerId).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
 }
