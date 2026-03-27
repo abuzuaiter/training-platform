@@ -128,7 +128,7 @@ export default function CustomersPage() {
           subscription_price: obj.subscription_price ? parseFloat(obj.subscription_price) : null
         })
       })
-      if (res.ok) success++ else failed++
+      if (res.ok) { success++ } else { failed++ }
     }
     setMessage(`Imported: ${success} success, ${failed} failed`)
     setShowBulk(false)
