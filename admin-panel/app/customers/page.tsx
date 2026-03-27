@@ -144,7 +144,7 @@ export default function AllCustomersPage() {
                       {c.has_guardian && <span className="ml-1 text-xs bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full font-medium">Guardian</span>}
                     </td>
                     <td className="px-6 py-4">
-                      <Link href={`/organizations/${c.organizations?.id}/customers/${c.id}`}
+                      <Link href={`/customers/${c.id}`}
                         className="text-xs text-blue-600 font-semibold hover:underline">
                         Manage →
                       </Link>

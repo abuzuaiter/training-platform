@@ -9,37 +9,28 @@ const supabaseAdmin = createClient(
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { data, error } = await supabaseAdmin
-    .from('customers')
-    .select('*')
+    .from('customer_organizations')
+    .select('customers(*)')
     .eq('organization_id', id)
-    .order('created_at', { ascending: false })
   if (error) return NextResponse.json([], { status: 200 })
-  return NextResponse.json(data || [])
+  const customers = (data || []).map((d: any) => d.customers).filter(Boolean)
+  return NextResponse.json(customers)
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const body = await req.json()
-  const { full_name, email, mobile, has_guardian, guardian_email, guardian_mobile, subscription_price, notes } = body
-
+  const { full_name, email, mobile, has_guardian, guardian_email, guardian_mobile, notes } = body
   if (!full_name) return NextResponse.json({ error: 'Full name is required' }, { status: 400 })
 
-  const { data, error } = await supabaseAdmin
+  const { data: customer, error } = await supabaseAdmin
     .from('customers')
-    .insert({
-      organization_id: id,
-      full_name,
-      email: email || null,
-      mobile: mobile || null,
-      has_guardian: has_guardian || false,
-      guardian_email: guardian_email || null,
-      guardian_mobile: guardian_mobile || null,
-      subscription_price: subscription_price || null,
-      notes: notes || null,
-      status: 'active'
-    })
+    .insert({ full_name, email: email || null, mobile: mobile || null, has_guardian: has_guardian || false, guardian_email: guardian_email || null, guardian_mobile: guardian_mobile || null, notes: notes || null, status: 'active' })
     .select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
+
+  await supabaseAdmin.from('customer_organizations').insert({ customer_id: customer.id, organization_id: id })
+
+  return NextResponse.json(customer)
 }
