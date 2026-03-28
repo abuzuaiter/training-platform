@@ -40,36 +40,13 @@ export default function Home() {
     setAiLoading(true)
     setAiInsight('')
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('/api/ai-insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages: [{
-            role: 'user',
-            content: `You are a business analyst for "Mawid" - a SaaS appointment management platform. Analyze this data and give 3-4 actionable insights in Arabic. Be concise and specific.
-
-Data:
-- Active Organizations: ${stats.totalOrgs}
-- Total Customers: ${stats.totalCustomers}
-- Active Plans: ${stats.activeOrgPlans}
-- Expired Plans: ${stats.expiredOrgPlans}
-- Plans expiring in 7 days: ${stats.expiringOrgPlans}
-- Total Revenue: ${stats.totalRevenue} QAR
-- Pending Revenue: ${stats.pendingRevenue} QAR
-- This Month Revenue: ${stats.thisMonthRevenue} QAR
-- Orgs renewed this month: ${stats.renewedOrgs.length}
-- Orgs not renewed: ${stats.notRenewedOrgs.length}
-- Active customer subscriptions: ${stats.renewedCustomers.length}
-- Expired customer subscriptions: ${stats.notRenewedCustomers.length}
-
-Give insights as numbered list in Arabic. Focus on: revenue opportunities, churn risk, and growth recommendations.`
-          }]
-        })
+        body: JSON.stringify({ stats })
       })
-      const data = await response.json()
-      setAiInsight(data.content?.[0]?.text || 'No insights available')
+      const data = await res.json()
+      setAiInsight(data.insight || 'No insights available')
     } catch (e) {
       setAiInsight('Error getting insights')
     }
