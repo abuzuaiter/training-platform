@@ -115,15 +115,6 @@ export default function PlansPage() {
     loadAll()
   }
 
-  async function togglePayment(op: OrgPlan) {
-    await fetch(`/api/organization-plans/${op.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ payment_status: op.payment_status === 'paid' ? 'unpaid' : 'paid' })
-    })
-    loadAll()
-  }
-
   async function handleUpdateEndDate() {
     if (!editEndDate) return
     await fetch(`/api/organization-plans/${editEndDate.id}`, {
@@ -393,10 +384,7 @@ export default function PlansPage() {
                               </span>
                             </div>
                             <div className="flex gap-2 items-center">
-                              <button onClick={() => togglePayment(op)}
-                                className={`text-xs px-2 py-1 rounded-lg font-semibold transition ${op.payment_status === 'paid' ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
-                                {op.payment_status === 'paid' ? 'Mark Unpaid' : 'Mark Paid'}
-                              </button>
+
                               <button onClick={() => setEditEndDate({ id: op.id, org_id: org.id, end_date: op.end_date })}
                                 className="text-xs px-2 py-1 rounded-lg bg-amber-50 text-amber-600 font-semibold hover:bg-amber-100">
                                 Set End Date
