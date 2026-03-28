@@ -5,7 +5,7 @@ import Link from 'next/link'
 
 const categories = [
   'Swimming', 'Football', 'Basketball', 'Tennis', 'Fitness & Gym',
-  'Martial Arts', 'Yoga & Pilates', 'Online Courses', 'Academic Training', 'Other'
+  'Martial Arts', 'Yoga & Pilates', 'Online Activities', 'Academic Training', 'Other'
 ]
 
 const roles = ['admin', 'coach', 'receptionist', 'trainee', 'parent']
@@ -31,7 +31,7 @@ interface Member {
   user: { full_name: string; email: string | null; mobile: string | null }
 }
 
-interface Course {
+interface Activity {
   id: string
   name: string
   enrollment_type: string
@@ -40,10 +40,10 @@ interface Course {
 interface Enrollment {
   id: string
   user_id: string
-  course_id: string
+  activity_id: string
   subscription_price: number | null
   users: { full_name: string; email: string | null }
-  courses: { name: string; enrollment_type: string }
+  activities: { name: string; enrollment_type: string }
 }
 
 export default function ManageOrgPage() {
@@ -52,7 +52,7 @@ export default function ManageOrgPage() {
   const router = useRouter()
   const [org, setOrg] = useState<Organization | null>(null)
   const [members, setMembers] = useState<Member[]>([])
-  const [courses, setCourses] = useState<Course[]>([])
+  const [activities, setActivities] = useState<Activity[]>([])
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
   const [form, setForm] = useState({ name: '', name_ar: '', email: '', phone: '', mobile: '', category: '' })
   const [loading, setLoading] = useState(true)
@@ -66,11 +66,11 @@ export default function ManageOrgPage() {
   const [memberSaving, setMemberSaving] = useState(false)
   const [memberMessage, setMemberMessage] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
-  const [enrollForm, setEnrollForm] = useState({ user_id: '', course_id: '', subscription_price: '' })
+  const [enrollForm, setEnrollForm] = useState({ user_id: '', activity_id: '', subscription_price: '' })
   const [enrollSaving, setEnrollSaving] = useState(false)
   const [enrollMessage, setEnrollMessage] = useState('')
 
-  useEffect(() => { if (id) { loadOrg(); loadMembers(); loadCourses(); loadEnrollments() } }, [id])
+  useEffect(() => { if (id) { loadOrg(); loadMembers(); loadActivities(); loadEnrollments() } }, [id])
 
   async function loadOrg() {
     const res = await fetch(`/api/organizations/${id}`)
@@ -90,10 +90,10 @@ export default function ManageOrgPage() {
     setMembers(data || [])
   }
 
-  async function loadCourses() {
-    const res = await fetch(`/api/courses?org_id=${id}`)
+  async function loadActivities() {
+    const res = await fetch(`/api/activities?org_id=${id}`)
     const data = await res.json()
-    setCourses(data || [])
+    setActivities(data || [])
   }
 
   async function loadEnrollments() {
@@ -150,8 +150,8 @@ export default function ManageOrgPage() {
   }
 
   async function handleEnroll() {
-    if (!enrollForm.user_id || !enrollForm.course_id) {
-      setEnrollMessage('Please select user and course')
+    if (!enrollForm.user_id || !enrollForm.activity_id) {
+      setEnrollMessage('Please select user and activity')
       return
     }
     setEnrollSaving(true)
@@ -159,12 +159,12 @@ export default function ManageOrgPage() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         user_id: enrollForm.user_id,
-        course_id: enrollForm.course_id,
+        activity_id: enrollForm.activity_id,
         subscription_price: enrollForm.subscription_price ? parseFloat(enrollForm.subscription_price) : null
       })
     })
     const data = await res.json()
-    if (res.ok) { setEnrollMessage('Enrolled successfully!'); setEnrollForm({ user_id: '', course_id: '', subscription_price: '' }); loadEnrollments() }
+    if (res.ok) { setEnrollMessage('Enrolled successfully!'); setEnrollForm({ user_id: '', activity_id: '', subscription_price: '' }); loadEnrollments() }
     else setEnrollMessage(data.error || 'Error')
     setEnrollSaving(false)
   }
@@ -381,10 +381,10 @@ export default function ManageOrgPage() {
               <option value="">Select trainee...</option>
               {trainees.map(m => <option key={m.user_id} value={m.user_id}>{m.user?.full_name}</option>)}
             </select>
-            <select value={enrollForm.course_id} onChange={e => setEnrollForm({...enrollForm, course_id: e.target.value})}
+            <select value={enrollForm.activity_id} onChange={e => setEnrollForm({...enrollForm, activity_id: e.target.value})}
               className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 bg-white">
-              <option value="">Select course...</option>
-              {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              <option value="">Select activity...</option>
+              {activities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
             <div className="flex gap-2">
               <input value={enrollForm.subscription_price} onChange={e => setEnrollForm({...enrollForm, subscription_price: e.target.value})}
@@ -404,7 +404,7 @@ export default function ManageOrgPage() {
                 <div key={e.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                   <div>
                     <p className="font-medium text-gray-900 text-sm">{e.users?.full_name || '—'}</p>
-                    <p className="text-xs text-gray-400">{e.courses?.name}</p>
+                    <p className="text-xs text-gray-400">{e.activities?.name}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     {e.subscription_price && (
@@ -413,7 +413,7 @@ export default function ManageOrgPage() {
                       </span>
                     )}
                     <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">
-                      {e.courses?.enrollment_type}
+                      {e.activities?.enrollment_type}
                     </span>
                   </div>
                 </div>

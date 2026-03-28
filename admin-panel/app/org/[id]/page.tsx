@@ -101,10 +101,10 @@ export default function OrgAdminPage() {
               <p className="text-xs text-gray-400">Add & manage</p>
             </div>
           </Link>
-          <Link href={`/org/${id}/courses`}>
+          <Link href={`/org/${id}/activities`}>
             <div className="bg-white rounded-2xl border border-gray-200 p-5 hover:border-blue-300 hover:shadow-md transition cursor-pointer">
               <span className="text-2xl mb-2 block">📚</span>
-              <p className="font-semibold text-gray-900 text-sm">Courses</p>
+              <p className="font-semibold text-gray-900 text-sm">Activities</p>
               <p className="text-xs text-gray-400">Create & schedule</p>
             </div>
           </Link>

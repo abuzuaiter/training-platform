@@ -16,7 +16,7 @@ interface Organization {
 
 const categories = [
   'Swimming', 'Football', 'Basketball', 'Tennis', 'Fitness & Gym',
-  'Martial Arts', 'Yoga & Pilates', 'Online Courses', 'Academic Training', 'Other'
+  'Martial Arts', 'Yoga & Pilates', 'Online Activities', 'Academic Training', 'Other'
 ]
 
 export default function OrganizationsPage() {
