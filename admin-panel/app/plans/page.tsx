@@ -9,6 +9,7 @@ interface Plan {
   max_customers: number
   price: number
   discount_percentage: number
+  billing_cycle: string
   is_active: boolean
 }
 
@@ -18,7 +19,9 @@ interface OrgPlan {
   plan_id: string
   start_date: string
   end_date: string
+  billing_cycle: string
   payment_status: string
+  notes: string | null
   plans: Plan
 }
 
@@ -34,10 +37,11 @@ export default function PlansPage() {
   const [showAssign, setShowAssign] = useState(false)
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ name: '', description: '', max_customers: '', price: '', discount_percentage: '' })
-  const [assignForm, setAssignForm] = useState({ organization_id: '', plan_id: '', start_date: '', end_date: '', payment_status: 'unpaid', notes: '' })
+  const [form, setForm] = useState({ name: '', description: '', max_customers: '', price: '', discount_percentage: '', billing_cycle: 'monthly' })
+  const [assignForm, setAssignForm] = useState({ organization_id: '', plan_id: '', billing_cycle: 'monthly', start_date: '', payment_status: 'unpaid', notes: '' })
   const [orgPlans, setOrgPlans] = useState<Record<string, OrgPlan[]>>({})
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [editEndDate, setEditEndDate] = useState<{id: string, org_id: string, end_date: string} | null>(null)
 
   useEffect(() => { loadAll() }, [])
 
@@ -64,7 +68,7 @@ export default function PlansPage() {
     const data = await res.json()
     if (res.ok) {
       setMessage('Plan created successfully!')
-      setForm({ name: '', description: '', max_customers: '', price: '', discount_percentage: '' })
+      setForm({ name: '', description: '', max_customers: '', price: '', discount_percentage: '', billing_cycle: 'monthly' })
       setShowForm(false)
       loadAll()
     } else {
@@ -74,7 +78,7 @@ export default function PlansPage() {
   }
 
   async function handleAssign() {
-    if (!assignForm.organization_id || !assignForm.plan_id || !assignForm.start_date || !assignForm.end_date) {
+    if (!assignForm.organization_id || !assignForm.plan_id || !assignForm.start_date) {
       setMessage('Please fill all required fields')
       return
     }
@@ -87,7 +91,7 @@ export default function PlansPage() {
     const data = await res.json()
     if (res.ok) {
       setMessage('Plan assigned successfully!')
-      setAssignForm({ organization_id: '', plan_id: '', start_date: '', end_date: '', payment_status: 'unpaid', notes: '' })
+      setAssignForm({ organization_id: '', plan_id: '', billing_cycle: 'monthly', start_date: '', payment_status: 'unpaid', notes: '' })
       setShowAssign(false)
       loadAll()
     } else {
@@ -111,9 +115,33 @@ export default function PlansPage() {
     loadAll()
   }
 
+  async function togglePayment(op: OrgPlan) {
+    await fetch(`/api/organization-plans/${op.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payment_status: op.payment_status === 'paid' ? 'unpaid' : 'paid' })
+    })
+    loadAll()
+  }
+
+  async function handleUpdateEndDate() {
+    if (!editEndDate) return
+    await fetch(`/api/organization-plans/${editEndDate.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ end_date: editEndDate.end_date })
+    })
+    setEditEndDate(null)
+    loadAll()
+  }
+
   const finalPrice = (plan: Plan) => {
     const discounted = plan.price * (1 - (plan.discount_percentage || 0) / 100)
     return discounted.toFixed(2)
+  }
+
+  const cycleLabel: Record<string, string> = {
+    monthly: 'Monthly', quarterly: 'Quarterly', annual: 'Annual'
   }
 
   return (
@@ -165,19 +193,28 @@ export default function PlansPage() {
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" placeholder="50" type="number" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">PRICE (QAR/month) *</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">PRICE (QAR/cycle) *</label>
                 <input value={form.price} onChange={e => setForm({...form, price: e.target.value})}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" placeholder="99" type="number" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">BILLING CYCLE</label>
+                <select value={form.billing_cycle} onChange={e => setForm({...form, billing_cycle: e.target.value})}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 bg-white">
+                  <option value="monthly">Monthly — شهري</option>
+                  <option value="quarterly">Quarterly — ربع سنوي</option>
+                  <option value="annual">Annual — سنوي</option>
+                </select>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1">DISCOUNT (%)</label>
                 <input value={form.discount_percentage} onChange={e => setForm({...form, discount_percentage: e.target.value})}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" placeholder="0" type="number" min="0" max="100" />
               </div>
-              <div className="md:col-span-2">
+              <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1">DESCRIPTION</label>
-                <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" placeholder="Plan description..." rows={2} />
+                <input value={form.description} onChange={e => setForm({...form, description: e.target.value})}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" placeholder="Plan description..." />
               </div>
             </div>
             <div className="flex gap-3 mt-4">
@@ -216,13 +253,17 @@ export default function PlansPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">START DATE *</label>
-                <input value={assignForm.start_date} onChange={e => setAssignForm({...assignForm, start_date: e.target.value})}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" type="date" />
+                <label className="block text-xs font-semibold text-gray-500 mb-1">BILLING CYCLE *</label>
+                <select value={assignForm.billing_cycle} onChange={e => setAssignForm({...assignForm, billing_cycle: e.target.value})}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 bg-white">
+                  <option value="monthly">Monthly — شهري</option>
+                  <option value="quarterly">Quarterly — ربع سنوي</option>
+                  <option value="annual">Annual — سنوي</option>
+                </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">END DATE *</label>
-                <input value={assignForm.end_date} onChange={e => setAssignForm({...assignForm, end_date: e.target.value})}
+                <label className="block text-xs font-semibold text-gray-500 mb-1">START DATE *</label>
+                <input value={assignForm.start_date} onChange={e => setAssignForm({...assignForm, start_date: e.target.value})}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" type="date" />
               </div>
               <div>
@@ -252,6 +293,27 @@ export default function PlansPage() {
           </div>
         )}
 
+        {editEndDate && (
+          <div className="bg-white rounded-2xl border border-amber-200 p-6 mb-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Set End Date (Cancel Subscription)</h2>
+            <div className="flex gap-3 items-end">
+              <div className="flex-1">
+                <label className="block text-xs font-semibold text-gray-500 mb-1">END DATE</label>
+                <input value={editEndDate.end_date} onChange={e => setEditEndDate({...editEndDate, end_date: e.target.value})}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" type="date" />
+              </div>
+              <button onClick={handleUpdateEndDate}
+                className="bg-amber-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-amber-600 transition">
+                Update
+              </button>
+              <button onClick={() => setEditEndDate(null)}
+                className="border border-gray-200 text-gray-600 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
         {plans.length === 0 ? (
           <div className="text-center py-12 text-gray-400">No plans yet — create your first plan</div>
         ) : (
@@ -271,6 +333,10 @@ export default function PlansPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-500">Max Customers</span>
                     <span className="text-sm font-semibold text-gray-900">{plan.max_customers}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Billing</span>
+                    <span className="text-sm font-semibold text-gray-900">{cycleLabel[plan.billing_cycle] || 'Monthly'}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-500">Price</span>
@@ -322,8 +388,19 @@ export default function PlansPage() {
                               <span className="ml-2 text-xs text-gray-400">
                                 {new Date(op.start_date).toLocaleDateString()} → {new Date(op.end_date).toLocaleDateString()}
                               </span>
+                              <span className="ml-2 text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
+                                {cycleLabel[op.billing_cycle] || 'Monthly'}
+                              </span>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 items-center">
+                              <button onClick={() => togglePayment(op)}
+                                className={`text-xs px-2 py-1 rounded-lg font-semibold transition ${op.payment_status === 'paid' ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
+                                {op.payment_status === 'paid' ? 'Mark Unpaid' : 'Mark Paid'}
+                              </button>
+                              <button onClick={() => setEditEndDate({ id: op.id, org_id: org.id, end_date: op.end_date })}
+                                className="text-xs px-2 py-1 rounded-lg bg-amber-50 text-amber-600 font-semibold hover:bg-amber-100">
+                                Set End Date
+                              </button>
                               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${op.payment_status === 'paid' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
                                 {op.payment_status}
                               </span>
