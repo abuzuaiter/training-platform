@@ -38,7 +38,7 @@ export default function PlansPage() {
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({ name: '', description: '', max_customers: '', price: '', discount_percentage: '', billing_cycle: 'monthly' })
-  const [assignForm, setAssignForm] = useState({ organization_id: '', plan_id: '', billing_cycle: 'monthly', start_date: '', payment_status: 'unpaid', notes: '' })
+  const [assignForm, setAssignForm] = useState({ organization_id: '', plan_id: '', billing_cycle: 'monthly', start_date: '' })
   const [orgPlans, setOrgPlans] = useState<Record<string, OrgPlan[]>>({})
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [editEndDate, setEditEndDate] = useState<{id: string, org_id: string, end_date: string} | null>(null)
@@ -86,12 +86,12 @@ export default function PlansPage() {
     const res = await fetch(`/api/organizations/${assignForm.organization_id}/plans`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(assignForm)
+      body: JSON.stringify({ ...assignForm, payment_status: 'unpaid' })
     })
     const data = await res.json()
     if (res.ok) {
-      setMessage('Plan assigned successfully!')
-      setAssignForm({ organization_id: '', plan_id: '', billing_cycle: 'monthly', start_date: '', payment_status: 'unpaid', notes: '' })
+      setMessage('Plan assigned successfully! Invoice created and sent.')
+      setAssignForm({ organization_id: '', plan_id: '', billing_cycle: 'monthly', start_date: '' })
       setShowAssign(false)
       loadAll()
     } else {
@@ -164,7 +164,7 @@ export default function PlansPage() {
         </div>
 
         {message && (
-          <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-medium ${message.includes('success') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+          <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-medium ${message.includes('success') || message.includes('sent') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
             {message}
           </div>
         )}
@@ -256,19 +256,6 @@ export default function PlansPage() {
                 <label className="block text-xs font-semibold text-gray-500 mb-1">START DATE *</label>
                 <input value={assignForm.start_date} onChange={e => setAssignForm({...assignForm, start_date: e.target.value})}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" type="date" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">PAYMENT STATUS</label>
-                <select value={assignForm.payment_status} onChange={e => setAssignForm({...assignForm, payment_status: e.target.value})}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 bg-white">
-                  <option value="unpaid">Unpaid</option>
-                  <option value="paid">Paid</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">NOTES</label>
-                <input value={assignForm.notes} onChange={e => setAssignForm({...assignForm, notes: e.target.value})}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" placeholder="Optional notes" />
               </div>
             </div>
             <div className="flex gap-3 mt-4">
@@ -384,7 +371,10 @@ export default function PlansPage() {
                               </span>
                             </div>
                             <div className="flex gap-2 items-center">
-
+                              <Link href="/invoices"
+                                className="text-xs px-2 py-1 rounded-lg bg-blue-50 text-blue-600 font-semibold hover:bg-blue-100">
+                                View Invoice
+                              </Link>
                               <button onClick={() => setEditEndDate({ id: op.id, org_id: org.id, end_date: op.end_date })}
                                 className="text-xs px-2 py-1 rounded-lg bg-amber-50 text-amber-600 font-semibold hover:bg-amber-100">
                                 Set End Date
