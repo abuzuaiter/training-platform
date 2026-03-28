@@ -407,6 +407,10 @@ export default function PlansPage() {
                               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isActive ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
                                 {isActive ? 'Active' : 'Expired'}
                               </span>
+                              <button onClick={async () => { await fetch(`/api/organization-plans/${op.id}`, { method: 'DELETE' }); loadAll() }}
+                                className="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-600 font-semibold hover:bg-red-100">
+                                Delete
+                              </button>
                             </div>
                           </div>
                         )

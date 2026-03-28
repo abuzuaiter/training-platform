@@ -19,7 +19,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { plan_id, billing_cycle, payment_status, notes } = await req.json()
+  const { plan_id, billing_cycle, start_date, payment_status, notes } = await req.json()
 
   if (!plan_id) return NextResponse.json({ error: 'Plan is required' }, { status: 400 })
 
@@ -37,20 +37,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }, { status: 400 })
   }
 
-  // Calculate end date based on billing cycle
-  const start = new Date()
-  const end = new Date()
   const cycle = billing_cycle || plan.billing_cycle || 'monthly'
+  const start = start_date ? new Date(start_date) : new Date()
+  const end = new Date(start)
+
   if (cycle === 'monthly') end.setMonth(end.getMonth() + 1)
   else if (cycle === 'quarterly') end.setMonth(end.getMonth() + 3)
   else if (cycle === 'annual') end.setFullYear(end.getFullYear() + 1)
 
-  const start_date = start.toISOString().split('T')[0]
-  const end_date = end.toISOString().split('T')[0]
-
   const { data, error } = await supabaseAdmin.from('organization_plans').insert({
     organization_id: id, plan_id,
-    start_date, end_date,
+    start_date: start.toISOString().split('T')[0],
+    end_date: end.toISOString().split('T')[0],
     billing_cycle: cycle,
     payment_status: payment_status || 'unpaid',
     notes: notes || null
