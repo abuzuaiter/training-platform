@@ -53,8 +53,8 @@ export default function InvoicePage() {
   if (!invoice) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">Not found</div>
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="max-w-3xl mx-auto px-6 py-8">
+    <div className="min-h-screen bg-gray-100 print:bg-white">
+      <div className="max-w-3xl mx-auto px-6 py-8 print:px-0 print:py-0 print:max-w-none">
         {/* Actions Bar - hidden on print */}
         <div className="flex items-center justify-between mb-6 print:hidden">
           <button onClick={() => router.push('/invoices')}
@@ -76,7 +76,7 @@ export default function InvoicePage() {
         </div>
 
         {/* Invoice */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden" id="invoice">
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden print:rounded-none print:shadow-none" id="invoice" style={{width:'210mm', minHeight:'297mm'}}>
           {/* Header */}
           <div style={{background: '#185FA5'}} className="px-10 py-8">
             <div className="flex items-start justify-between">
