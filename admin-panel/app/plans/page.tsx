@@ -30,6 +30,29 @@ interface Organization {
   name: string
 }
 
+function ViewInvoiceButton({ orgPlanId }: { orgPlanId: string }) {
+  const [loading, setLoading] = useState(false)
+
+  async function handleClick() {
+    setLoading(true)
+    const res = await fetch('/api/invoices?org_plan_id=' + orgPlanId)
+    const data = await res.json()
+    if (data && data.length > 0) {
+      window.open('/invoices/' + data[0].id, '_blank')
+    } else {
+      alert('No invoice found for this plan')
+    }
+    setLoading(false)
+  }
+
+  return (
+    <button onClick={handleClick} disabled={loading}
+      className="text-xs px-2 py-1 rounded-lg bg-blue-50 text-blue-600 font-semibold hover:bg-blue-100 disabled:opacity-50">
+      {loading ? '...' : 'View Invoice'}
+    </button>
+  )
+}
+
 export default function PlansPage() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [organizations, setOrganizations] = useState<Organization[]>([])
@@ -371,10 +394,7 @@ export default function PlansPage() {
                               </span>
                             </div>
                             <div className="flex gap-2 items-center">
-                              <Link href="/invoices"
-                                className="text-xs px-2 py-1 rounded-lg bg-blue-50 text-blue-600 font-semibold hover:bg-blue-100">
-                                View Invoice
-                              </Link>
+                              <ViewInvoiceButton orgPlanId={op.id} />
                               <button onClick={() => setEditEndDate({ id: op.id, org_id: org.id, end_date: op.end_date })}
                                 className="text-xs px-2 py-1 rounded-lg bg-amber-50 text-amber-600 font-semibold hover:bg-amber-100">
                                 Set End Date
