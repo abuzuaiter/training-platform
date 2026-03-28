@@ -33,19 +33,15 @@ export async function GET() {
     supabaseAdmin.from('invoices').select('amount').eq('status', 'paid'),
     supabaseAdmin.from('invoices').select('amount').eq('status', 'pending'),
     supabaseAdmin.from('invoices').select('amount').eq('status', 'paid').gte('paid_at', thisMonthStart),
-    // Orgs that renewed (have active plan created this month)
     supabaseAdmin.from('organization_plans').select('organization_id, organizations(name)').gte('start_date', thisMonthStart).gte('end_date', today),
-    // Orgs with expired plan and no active plan
     supabaseAdmin.from('organization_plans').select('organization_id, organizations(name)').lt('end_date', today),
-    // Customers with active subscription
     supabaseAdmin.from('customer_subscriptions').select('customer_id, customers(full_name)').gte('end_date', today),
-    // Customers with expired subscription
     supabaseAdmin.from('customer_subscriptions').select('customer_id, customers(full_name)').lt('end_date', today),
   ])
 
-  const totalRevenue = (paidInvoices || []).reduce((sum, i) => sum + (i.amount || 0), 0)
-  const pendingRevenue = (pendingInvoices || []).reduce((sum, i) => sum + (i.amount || 0), 0)
-  const thisMonthRevenue = (monthlyRevenue || []).reduce((sum, i) => sum + (i.amount || 0), 0)
+  const totalRevenue = (paidInvoices || []).reduce((sum: number, i: any) => sum + Number(i.amount || 0), 0)
+  const pendingRevenue = (pendingInvoices || []).reduce((sum: number, i: any) => sum + Number(i.amount || 0), 0)
+  const thisMonthRevenue = (monthlyRevenue || []).reduce((sum: number, i: any) => sum + Number(i.amount || 0), 0)
 
   return NextResponse.json({
     totalOrgs: totalOrgs || 0,
