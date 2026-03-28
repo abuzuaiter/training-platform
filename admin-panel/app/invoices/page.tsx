@@ -203,18 +203,18 @@ export default function InvoicesPage() {
                       {inv.paid_at && <p className="text-green-600">Paid: {new Date(inv.paid_at).toLocaleDateString()}</p>}
                     </td>
                     <td className="px-6 py-4">
-                      {inv.status === 'pending' && (
-                        <button onClick={() => markPaid(inv)}
-                          className="text-xs px-3 py-1.5 rounded-lg bg-green-50 text-green-600 font-semibold hover:bg-green-100 transition">
-                          Mark Paid
-                        </button>
-                      )}
-                      {inv.status === 'paid' && (
+                      <div className="flex gap-2">
+                        {inv.status === 'pending' && (
+                          <button onClick={() => markPaid(inv)}
+                            className="text-xs px-3 py-1.5 rounded-lg bg-green-50 text-green-600 font-semibold hover:bg-green-100 transition">
+                            Mark Paid
+                          </button>
+                        )}
                         <Link href={`/invoices/${inv.id}`}
                           className="text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 font-semibold hover:bg-blue-100 transition">
                           View →
                         </Link>
-                      )}
+                      </div>
                     </td>
                   </tr>
                 ))}
