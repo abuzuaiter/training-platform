@@ -42,6 +42,15 @@ export default function Home() {
               <p className="text-sm text-gray-500">View all customers across organizations</p>
             </div>
           </Link>
+          <Link href="/invoices">
+            <div className="bg-white rounded-2xl p-6 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-4">
+                <span className="text-2xl">🧾</span>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Invoices</h3>
+              <p className="text-sm text-gray-500">Track payments and receipts</p>
+            </div>
+          </Link>
           <Link href="/plans"><div className="bg-white rounded-2xl p-6 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"><div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mb-4"><span className="text-2xl">📦</span></div><h3 className="text-lg font-semibold text-gray-900 mb-1">Plans</h3><p className="text-sm text-gray-500">Manage organization plans</p></div></Link>
         </div>
       </div>
