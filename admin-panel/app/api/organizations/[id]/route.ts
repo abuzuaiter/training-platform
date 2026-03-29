@@ -6,6 +6,14 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+async function logAction(action: string, entity_id: string, details?: any) {
+  try {
+    await supabaseAdmin.from('audit_logs').insert({
+      user_email: 'admin', action, entity_type: 'organization', entity_id, details: details || null
+    })
+  } catch (e) {}
+}
+
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   
