@@ -24,8 +24,15 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [aiInsight, setAiInsight] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
 
-  useEffect(() => { loadStats() }, [])
+  useEffect(() => {
+    loadStats()
+    // Check if super admin
+    fetch('/api/auth/me').then(r => r.json()).then(d => {
+      setIsSuperAdmin(d.role === 'super_admin')
+    }).catch(() => {})
+  }, [])
 
   async function loadStats() {
     setLoading(true)
@@ -75,10 +82,10 @@ export default function Home() {
 
       <div className="max-w-7xl mx-auto px-6 py-8">
 
-        {/* Stats Cards */}
-        {loading ? (
+        {/* Stats Cards - Super Admin Only */}
+        {isSuperAdmin && loading ? (
           <div className="text-center py-8 text-gray-400">Loading stats...</div>
-        ) : stats && (
+        ) : isSuperAdmin && stats && (
           <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <div className="bg-white rounded-2xl border border-gray-200 p-5">
