@@ -5,15 +5,6 @@ const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
-async function logAction(supabase: any, action: string, entity_type: string, entity_id?: string, details?: any) {
-  try {
-    await supabase.from('audit_logs').insert({
-      user_email: 'admin', action, entity_type,
-      entity_id: entity_id || null, details: details || null
-    })
-  } catch (e) {}
-}
-
 
 const SUPER_ADMIN_EMAILS = ['mohd.abuzuaiter@live.com']
 
@@ -31,16 +22,17 @@ export async function POST(req: NextRequest) {
 
   let role = ''
   let organization_id = null
+  let permissions: Record<string, string[]> = {}
 
   if (SUPER_ADMIN_EMAILS.includes(email.toLowerCase())) {
     role = 'super_admin'
   } else {
+    // Check if org admin
     const { data: membership } = await supabaseAdmin
       .from('organization_members')
       .select('organization_id, role')
       .eq('user_id', data.user.id)
       .eq('role', 'admin')
-      .eq('status', 'active')
       .limit(1)
       .maybeSingle()
 
@@ -48,18 +40,36 @@ export async function POST(req: NextRequest) {
       role = 'org_admin'
       organization_id = membership.organization_id
     } else {
-      return NextResponse.json({ error: 'You do not have access to this portal' }, { status: 403 })
+      // Check if custom role user
+      const { data: userRole } = await supabaseAdmin
+        .from('user_roles')
+        .select('roles(name, permissions)')
+        .eq('user_id', data.user.id)
+        .limit(1)
+        .maybeSingle()
+
+      if (userRole?.roles) {
+        role = 'custom'
+        permissions = (userRole.roles as any).permissions || {}
+      } else {
+        return NextResponse.json({ error: 'You do not have access to this portal' }, { status: 403 })
+      }
     }
   }
 
-  const sessionData = JSON.stringify({ role, organization_id, email })
+  // Log login
+  try {
+    await supabaseAdmin.from('audit_logs').insert({
+      user_email: email, action: 'login', entity_type: 'auth',
+      entity_id: data.user.id, details: { role }
+    })
+  } catch (e) {}
+
+  const sessionData = JSON.stringify({ role, organization_id, email, permissions })
   const res = NextResponse.json({ role, organization_id })
   res.cookies.set('admin_session', sessionData, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'lax',
+    httpOnly: true, secure: true, sameSite: 'lax',
     maxAge: 60 * 60 * 24 * 7
   })
-
   return res
 }
