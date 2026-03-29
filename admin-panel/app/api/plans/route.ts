@@ -1,6 +1,21 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
+
+async function logAction(supabase: any, action: string, entity_type: string, entity_id?: string, details?: any) {
+  try {
+    await supabase.from('audit_logs').insert({
+      user_email: 'admin',
+      action,
+      entity_type,
+      entity_id: entity_id || null,
+      details: details || null
+    })
+  } catch (e) {
+    console.error('Audit log error:', e)
+  }
+}
+
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -26,5 +41,6 @@ export async function POST(req: NextRequest) {
     billing_cycle: billing_cycle || 'monthly'
   }).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await logAction(supabaseAdmin, 'create', 'plan', data.id, { name: data.name, max_customers: data.max_customers, price: data.price })
   return NextResponse.json(data)
 }
