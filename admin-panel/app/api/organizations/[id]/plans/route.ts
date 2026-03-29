@@ -57,7 +57,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   // Create invoice only — no email
-  const invoiceNumber = 'INV-' + Date.now().toString().slice(-6)
+  const { data: seqData } = await supabaseAdmin.rpc('nextval_invoice')
+  const invoiceNumber = 'INV-' + String(seqData || Date.now()).padStart(6, '0')
   const discount = plan.discount_percentage || 0
   const amount = plan.price * (1 - discount / 100)
 
