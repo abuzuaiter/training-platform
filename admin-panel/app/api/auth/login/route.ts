@@ -5,6 +5,15 @@ const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
+async function logAction(supabase: any, action: string, entity_type: string, entity_id?: string, details?: any) {
+  try {
+    await supabase.from('audit_logs').insert({
+      user_email: 'admin', action, entity_type,
+      entity_id: entity_id || null, details: details || null
+    })
+  } catch (e) {}
+}
+
 
 const SUPER_ADMIN_EMAILS = ['mohd.abuzuaiter@live.com']
 

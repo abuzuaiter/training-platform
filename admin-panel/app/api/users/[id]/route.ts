@@ -5,6 +5,15 @@ const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
+async function logAction(supabase: any, action: string, entity_type: string, entity_id?: string, details?: any) {
+  try {
+    await supabase.from('audit_logs').insert({
+      user_email: 'admin', action, entity_type,
+      entity_id: entity_id || null, details: details || null
+    })
+  } catch (e) {}
+}
+
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -26,5 +35,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { data, error } = await supabaseAdmin
     .from('users').update(body).eq('id', id).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await logAction(supabaseAdmin, 'update', 'user', id, body)
   return NextResponse.json(data)
 }
