@@ -15,11 +15,12 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { name, description, max_customers, price, discount_percentage, billing_cycle } = body
+  const { name, description, max_customers, max_staff, price, discount_percentage, billing_cycle } = body
   if (!name || !max_customers || !price) return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   const { data, error } = await supabaseAdmin.from('plans').insert({
     name, description: description || null,
     max_customers: parseInt(max_customers),
+    max_staff: max_staff ? parseInt(max_staff) : 10,
     price: parseFloat(price),
     discount_percentage: discount_percentage ? parseFloat(discount_percentage) : 0,
     billing_cycle: billing_cycle || 'monthly'

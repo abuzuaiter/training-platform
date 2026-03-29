@@ -60,7 +60,7 @@ export default function PlansPage() {
   const [showAssign, setShowAssign] = useState(false)
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ name: '', description: '', max_customers: '', price: '', discount_percentage: '', billing_cycle: 'monthly' })
+  const [form, setForm] = useState({ name: '', description: '', max_customers: '', max_staff: '', price: '', discount_percentage: '', billing_cycle: 'monthly' })
   const [assignForm, setAssignForm] = useState({ organization_id: '', plan_id: '', billing_cycle: 'monthly', start_date: '' })
   const [orgPlans, setOrgPlans] = useState<Record<string, OrgPlan[]>>({})
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
@@ -207,6 +207,11 @@ export default function PlansPage() {
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" placeholder="50" type="number" />
               </div>
               <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">MAX STAFF (coaches + workers)</label>
+                <input value={form.max_staff} onChange={e => setForm({...form, max_staff: e.target.value})}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" placeholder="5" type="number" />
+              </div>
+              <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1">PRICE (QAR/cycle) *</label>
                 <input value={form.price} onChange={e => setForm({...form, price: e.target.value})}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" placeholder="99" type="number" />
@@ -334,6 +339,10 @@ export default function PlansPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-500">Max Customers</span>
                     <span className="text-sm font-semibold text-gray-900">{plan.max_customers}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Max Staff</span>
+                    <span className="text-sm font-semibold text-gray-900">{plan.max_staff || 10}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-500">Billing</span>
