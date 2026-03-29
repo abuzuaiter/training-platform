@@ -7,17 +7,16 @@ const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
-async function logAction(supabase: any, action: string, entity_type: string, entity_id?: string, details?: any) {
+const resend = new Resend(process.env.RESEND_API_KEY)
+
+async function logAction(action: string, entity_id: string, details?: any) {
   try {
-    await supabase.from('audit_logs').insert({
-      user_email: 'admin', action, entity_type,
-      entity_id: entity_id || null, details: details || null
+    await supabaseAdmin.from('audit_logs').insert({
+      user_email: 'admin', action, entity_type: 'invitation',
+      entity_id, details: details || null
     })
   } catch (e) {}
 }
-
-
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -26,8 +25,7 @@ export async function GET(req: NextRequest) {
   if (org_id) query = query.eq('organization_id', org_id)
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  await logAction(supabaseAdmin, 'create', 'invitation', data.id, { email: data.email, role: data.role })
-  return NextResponse.json(data)
+  return NextResponse.json(data || [])
 }
 
 export async function POST(req: NextRequest) {
@@ -69,23 +67,25 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  await logAction('create', invitation.id, { email, role, org: org?.name })
+
   const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/accept-invite?token=${token}`
 
   try {
     await resend.emails.send({
-      from: 'Training Platform <onboarding@resend.dev>',
+      from: 'Mawid <onboarding@resend.dev>',
       to: email,
       subject: `You're invited to join ${org?.name}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: #185FA5; padding: 32px; text-align: center; border-radius: 12px 12px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">Training Platform</h1>
+            <h1 style="color: white; margin: 0;">موعد — Mawid</h1>
           </div>
           <div style="background: white; padding: 32px; border: 1px solid #e5e7eb; border-radius: 0 0 12px 12px;">
-            <h2 style="color: #1a1a1a;">You're invited! 🎉</h2>
-            <p style="color: #6b7280;">You have been invited to join <strong>${org?.name}</strong> as a <strong>${role}</strong>.</p>
+            <h2>You're invited! 🎉</h2>
+            <p>You have been invited to join <strong>${org?.name}</strong> as a <strong>${role}</strong>.</p>
             <div style="text-align: center; margin: 32px 0;">
-              <a href="${inviteUrl}" style="background: #185FA5; color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 16px;">
+              <a href="${inviteUrl}" style="background: #185FA5; color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: bold;">
                 Accept Invitation
               </a>
             </div>
