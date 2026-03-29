@@ -1,154 +1,158 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-interface Organization {
-  id: string
-  name: string
-  name_ar: string | null
-  category: string | null
-  status: string
-}
-
-interface Member {
-  id: string
-  user_id: string
-  role: string
-  status: string
-  user: { full_name: string; email: string | null; mobile: string | null }
-}
-
-export default function OrgAdminPage() {
+export default function OrgDashboard() {
   const params = useParams()
   const id = params.id as string
-  const [org, setOrg] = useState<Organization | null>(null)
-  const [members, setMembers] = useState<Member[]>([])
+  const router = useRouter()
+  const [org, setOrg] = useState<any>(null)
+  const [stats, setStats] = useState({ members: 0, customers: 0, activities: 0 })
+  const [plan, setPlan] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { if (id) { loadOrg(); loadMembers() } }, [id])
+  useEffect(() => { if (id) loadAll() }, [id])
 
-  async function loadOrg() {
-    const res = await fetch(`/api/organizations/${id}`)
-    const data = await res.json()
-    setOrg(data)
+  async function loadAll() {
+    const [orgRes, membersRes, customersRes, activitiesRes, plansRes] = await Promise.all([
+      fetch(`/api/organizations/${id}`),
+      fetch(`/api/organizations/${id}/members`),
+      fetch(`/api/organizations/${id}/customers`),
+      fetch(`/api/activities?org_id=${id}`),
+      fetch(`/api/organizations/${id}/plans`),
+    ])
+    const [orgData, membersData, customersData, activitiesData, plansData] = await Promise.all([
+      orgRes.json(), membersRes.json(), customersRes.json(), activitiesRes.json(), plansRes.json()
+    ])
+    setOrg(orgData)
+    setPlan(plansData?.[0] || null)
+    setStats({
+      members: (membersData || []).length,
+      customers: (customersData || []).length,
+      activities: (activitiesData || []).length,
+    })
     setLoading(false)
   }
 
-  async function loadMembers() {
-    const res = await fetch(`/api/organizations/${id}/members`)
-    const data = await res.json()
-    setMembers(data || [])
+  async function handleLogout() {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    router.push('/login')
   }
-
-  const roleColor: Record<string, string> = {
-    admin: 'bg-red-50 text-red-600',
-    coach: 'bg-blue-50 text-blue-600',
-    receptionist: 'bg-purple-50 text-purple-600',
-    trainee: 'bg-green-50 text-green-600',
-    parent: 'bg-amber-50 text-amber-600',
-  }
-
-  const coaches = members.filter(m => m.role === 'coach')
-  const trainees = members.filter(m => m.role === 'trainee')
-  const others = members.filter(m => !['coach', 'trainee'].includes(m.role))
 
   if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">Loading...</div>
+
+  const planExpiringSoon = plan && new Date(plan.end_date) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
 
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{org?.name}</h1>
-            <p className="text-sm text-gray-500">{org?.category || 'Organization'}</p>
+            <h1 className="text-xl font-bold text-gray-900">{org?.name || 'Organization'}</h1>
+            <p className="text-sm text-gray-500">{org?.category || 'Admin Portal'}</p>
           </div>
-          <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">
-            Org Admin
-          </span>
+          <div className="flex items-center gap-3">
+            {plan && (
+              <span className={`text-xs font-semibold px-3 py-1 rounded-full ${plan.payment_status === 'paid' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+                {plan.plans?.name} — {plan.payment_status}
+              </span>
+            )}
+            <span className="bg-purple-100 text-purple-800 text-xs font-semibold px-3 py-1 rounded-full">Org Admin</span>
+            <button onClick={handleLogout} className="text-xs text-gray-500 hover:text-red-500 font-medium transition">Sign out</button>
+          </div>
         </div>
       </nav>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
+
+        {/* Plan expiring warning */}
+        {planExpiringSoon && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-6 flex items-center gap-3">
+            <span className="text-amber-500 text-xl">⚠️</span>
+            <p className="text-amber-700 text-sm font-medium">
+              Your plan expires on {new Date(plan.end_date).toLocaleDateString()} — please contact us to renew.
+            </p>
+          </div>
+        )}
+
+        {!plan && (
+          <div className="bg-red-50 border border-red-200 rounded-2xl px-5 py-4 mb-6 flex items-center gap-3">
+            <span className="text-red-500 text-xl">🚫</span>
+            <p className="text-red-700 text-sm font-medium">No active plan — please contact us to activate your account.</p>
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-2xl border border-gray-200 p-5">
-            <p className="text-xs font-semibold text-gray-400 mb-1">COACHES</p>
-            <p className="text-3xl font-bold text-blue-600">{coaches.length}</p>
+            <p className="text-xs font-semibold text-gray-400 mb-1">MEMBERS</p>
+            <p className="text-3xl font-bold text-blue-600">{stats.members}</p>
+            {plan && <p className="text-xs text-gray-400 mt-1">Max staff: {plan.plans?.max_staff || '—'}</p>}
           </div>
           <div className="bg-white rounded-2xl border border-gray-200 p-5">
-            <p className="text-xs font-semibold text-gray-400 mb-1">TRAINEES</p>
-            <p className="text-3xl font-bold text-green-600">{trainees.length}</p>
+            <p className="text-xs font-semibold text-gray-400 mb-1">CUSTOMERS</p>
+            <p className="text-3xl font-bold text-purple-600">{stats.customers}</p>
+            {plan && <p className="text-xs text-gray-400 mt-1">Max: {plan.plans?.max_customers || '—'}</p>}
           </div>
           <div className="bg-white rounded-2xl border border-gray-200 p-5">
-            <p className="text-xs font-semibold text-gray-400 mb-1">TOTAL MEMBERS</p>
-            <p className="text-3xl font-bold text-gray-900">{members.length}</p>
+            <p className="text-xs font-semibold text-gray-400 mb-1">ACTIVITIES</p>
+            <p className="text-3xl font-bold text-green-600">{stats.activities}</p>
           </div>
           <div className="bg-white rounded-2xl border border-gray-200 p-5">
-            <p className="text-xs font-semibold text-gray-400 mb-1">STATUS</p>
-            <p className={`text-sm font-bold mt-1 ${org?.status === 'active' ? 'text-green-600' : 'text-red-500'}`}>
-              {org?.status?.toUpperCase()}
-            </p>
+            <p className="text-xs font-semibold text-gray-400 mb-1">PLAN</p>
+            {plan ? (
+              <>
+                <p className="text-sm font-bold text-gray-900 mt-1">{plan.plans?.name}</p>
+                <p className="text-xs text-gray-400">Until {new Date(plan.end_date).toLocaleDateString()}</p>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${plan.payment_status === 'paid' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
+                  {plan.payment_status}
+                </span>
+              </>
+            ) : (
+              <p className="text-sm text-red-500 font-medium mt-1">No Plan</p>
+            )}
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Link href={`/org/${id}/members`}>
-            <div className="bg-white rounded-2xl border border-gray-200 p-5 hover:border-blue-300 hover:shadow-md transition cursor-pointer">
-              <span className="text-2xl mb-2 block">👥</span>
-              <p className="font-semibold text-gray-900 text-sm">Members</p>
-              <p className="text-xs text-gray-400">Add & manage</p>
-            </div>
-          </Link>
-          <Link href={`/org/${id}/activities`}>
-            <div className="bg-white rounded-2xl border border-gray-200 p-5 hover:border-blue-300 hover:shadow-md transition cursor-pointer">
-              <span className="text-2xl mb-2 block">📚</span>
-              <p className="font-semibold text-gray-900 text-sm">Activities</p>
-              <p className="text-xs text-gray-400">Create & schedule</p>
-            </div>
-          </Link>
-          <Link href={`/org/${id}/invitations`}>
-            <div className="bg-white rounded-2xl border border-gray-200 p-5 hover:border-blue-300 hover:shadow-md transition cursor-pointer">
-              <span className="text-2xl mb-2 block">✉️</span>
-              <p className="font-semibold text-gray-900 text-sm">Invitations</p>
-              <p className="text-xs text-gray-400">Send invites</p>
+        {/* Quick Access */}
+        <h2 className="text-lg font-bold text-gray-900 mb-4">Quick Access</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Link href={`/org/${id}/customers`}>
+            <div className="bg-white rounded-2xl p-5 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
+              <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center mb-3"><span className="text-xl">🧑‍🤝‍🧑</span></div>
+              <h3 className="font-semibold text-gray-900 text-sm">Customers</h3>
+              <p className="text-xs text-gray-400 mt-0.5">{stats.customers} / {plan?.plans?.max_customers || '—'} customers</p>
             </div>
           </Link>
           <Link href={`/org/${id}/subscriptions`}>
-            <div className="bg-white rounded-2xl border border-gray-200 p-5 hover:border-blue-300 hover:shadow-md transition cursor-pointer">
-              <span className="text-2xl mb-2 block">💳</span>
-              <p className="font-semibold text-gray-900 text-sm">Subscriptions</p>
-              <p className="text-xs text-gray-400">Track payments</p>
+            <div className="bg-white rounded-2xl p-5 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
+              <div className="w-10 h-10 bg-teal-100 rounded-xl flex items-center justify-center mb-3"><span className="text-xl">💳</span></div>
+              <h3 className="font-semibold text-gray-900 text-sm">Subscriptions</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Track customer subscriptions</p>
             </div>
           </Link>
-        </div>
-
-        {/* Recent Members */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Recent Members</h2>
-          {members.length === 0 ? (
-            <p className="text-sm text-gray-400">No members yet</p>
-          ) : (
-            <div className="space-y-2">
-              {members.slice(0, 5).map(m => (
-                <div key={m.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-semibold text-sm">
-                      {m.user?.full_name?.charAt(0) || '?'}
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900 text-sm">{m.user?.full_name || '—'}</p>
-                      <p className="text-xs text-gray-400">{m.user?.email || m.user?.mobile || '—'}</p>
-                    </div>
-                  </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleColor[m.role] || 'bg-gray-100 text-gray-600'}`}>
-                    {m.role}
-                  </span>
-                </div>
-              ))}
+          <Link href={`/org/${id}/members`}>
+            <div className="bg-white rounded-2xl p-5 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
+              <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mb-3"><span className="text-xl">👥</span></div>
+              <h3 className="font-semibold text-gray-900 text-sm">Members</h3>
+              <p className="text-xs text-gray-400 mt-0.5">{stats.members} / {plan?.plans?.max_staff || '—'} staff</p>
             </div>
-          )}
+          </Link>
+          <Link href={`/org/${id}/activities`}>
+            <div className="bg-white rounded-2xl p-5 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
+              <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center mb-3"><span className="text-xl">📋</span></div>
+              <h3 className="font-semibold text-gray-900 text-sm">Activities</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Manage activities & schedule</p>
+            </div>
+          </Link>
+          <Link href={`/org/${id}/invitations`}>
+            <div className="bg-white rounded-2xl p-5 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
+              <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center mb-3"><span className="text-xl">✉️</span></div>
+              <h3 className="font-semibold text-gray-900 text-sm">Invitations</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Invite members</p>
+            </div>
+          </Link>
         </div>
       </div>
     </div>
