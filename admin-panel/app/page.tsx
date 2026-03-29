@@ -246,6 +246,13 @@ export default function Home() {
               <p className="text-xs text-gray-400 mt-0.5">Send invites</p>
             </div>
           </Link>
+          <Link href="/audit-logs">
+            <div className="bg-white rounded-2xl p-5 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
+              <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center mb-3"><span className="text-xl">📋</span></div>
+              <h3 className="font-semibold text-gray-900 text-sm">Audit Logs</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Track all actions</p>
+            </div>
+          </Link>
           <Link href="/activities">
             <div className="bg-white rounded-2xl p-5 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
               <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center mb-3"><span className="text-xl">📚</span></div>
