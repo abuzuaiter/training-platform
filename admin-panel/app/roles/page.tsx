@@ -3,27 +3,31 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 
 const PAGES = [
-  { key: 'organizations', label: 'Organizations', icon: '🏢' },
-  { key: 'plans', label: 'Plans', icon: '📦' },
-  { key: 'invoices', label: 'Invoices', icon: '🧾' },
-  { key: 'customers', label: 'Customers', icon: '🧑‍🤝‍🧑' },
-  { key: 'subscriptions', label: 'Subscriptions', icon: '💳' },
-  { key: 'users', label: 'Users', icon: '👥' },
-  { key: 'invitations', label: 'Invitations', icon: '✉️' },
-  { key: 'activities', label: 'Activities', icon: '📋' },
-  { key: 'audit_logs', label: 'Audit Logs', icon: '📋' },
+  { key: 'organizations', label: 'Organizations', icon: '🏢', actions: ['view', 'add', 'edit', 'delete'] },
+  { key: 'plans', label: 'Plans', icon: '📦', actions: ['view', 'add', 'edit', 'delete'] },
+  { key: 'invoices', label: 'Invoices', icon: '🧾', actions: ['view', 'mark_paid', 'delete'] },
+  { key: 'customers', label: 'Customers', icon: '🧑\u200d🤝\u200d🧑', actions: ['view', 'add', 'edit', 'delete'] },
+  { key: 'subscriptions', label: 'Subscriptions', icon: '💳', actions: ['view', 'add', 'edit', 'delete'] },
+  { key: 'users', label: 'Users', icon: '👥', actions: ['view', 'edit'] },
+  { key: 'invitations', label: 'Invitations', icon: '✉️', actions: ['view', 'add', 'delete'] },
+  { key: 'activities', label: 'Activities', icon: '📋', actions: ['view', 'add', 'edit', 'delete'] },
+  { key: 'audit_logs', label: 'Audit Logs', icon: '🔍', actions: ['view'] },
+  { key: 'roles', label: 'Roles', icon: '🔐', actions: ['view', 'add', 'edit', 'delete'] },
 ]
 
-const ACCESS_LEVELS = [
-  { value: 'none', label: 'No Access', color: 'bg-gray-100 text-gray-500' },
-  { value: 'view', label: 'View Only', color: 'bg-blue-50 text-blue-600' },
-  { value: 'full', label: 'Full Access', color: 'bg-green-50 text-green-600' },
-]
+const ACTION_LABELS: Record<string, string> = {
+  view: 'View', add: 'Add', edit: 'Edit', delete: 'Delete', mark_paid: 'Mark Paid'
+}
+
+const ACTION_COLORS: Record<string, string> = {
+  view: 'text-blue-600', add: 'text-green-600', edit: 'text-amber-600',
+  delete: 'text-red-600', mark_paid: 'text-teal-600'
+}
 
 interface Role {
   id: string
   name: string
-  permissions: Record<string, string>
+  permissions: Record<string, string[]>
   user_roles?: { user_id: string; users: { full_name: string; email: string } }[]
 }
 
@@ -36,16 +40,14 @@ export default function RolesPage() {
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
-  const [form, setForm] = useState({ name: '', permissions: {} as Record<string, string> })
+  const [form, setForm] = useState({ name: '', permissions: {} as Record<string, string[]> })
   const [assignUser, setAssignUser] = useState<{roleId: string, userId: string} | null>(null)
 
   useEffect(() => { loadAll() }, [])
 
   async function loadAll() {
     setLoading(true)
-    const [rolesRes, usersRes] = await Promise.all([
-      fetch('/api/roles'), fetch('/api/users')
-    ])
+    const [rolesRes, usersRes] = await Promise.all([fetch('/api/roles'), fetch('/api/users')])
     const [rolesData, usersData] = await Promise.all([rolesRes.json(), usersRes.json()])
     setRoles(rolesData || [])
     setUsers(usersData || [])
@@ -57,16 +59,23 @@ export default function RolesPage() {
       setForm({ name: role.name, permissions: { ...role.permissions } })
       setEditRole(role)
     } else {
-      const defaultPerms: Record<string, string> = {}
-      PAGES.forEach(p => { defaultPerms[p.key] = 'none' })
+      const defaultPerms: Record<string, string[]> = {}
+      PAGES.forEach(p => { defaultPerms[p.key] = [] })
       setForm({ name: '', permissions: defaultPerms })
       setEditRole(null)
     }
     setShowForm(true)
+    setMessage('')
   }
 
-  function setPermission(key: string, value: string) {
-    setForm(prev => ({ ...prev, permissions: { ...prev.permissions, [key]: value } }))
+  function toggleAction(pageKey: string, action: string) {
+    setForm(prev => {
+      const current = prev.permissions[pageKey] || []
+      const updated = current.includes(action)
+        ? current.filter(a => a !== action)
+        : [...current, action]
+      return { ...prev, permissions: { ...prev.permissions, [pageKey]: updated } }
+    })
   }
 
   async function handleSave() {
@@ -97,6 +106,7 @@ export default function RolesPage() {
   }
 
   async function handleAssign(roleId: string, userId: string) {
+    if (!userId) return
     await fetch('/api/user-roles', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: userId, role_id: roleId })
@@ -144,41 +154,47 @@ export default function RolesPage() {
         {showForm && (
           <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
             <h2 className="text-lg font-bold text-gray-900 mb-4">{editRole ? 'Edit Role' : 'New Role'}</h2>
-            <div className="mb-4">
+            <div className="mb-5">
               <label className="block text-xs font-semibold text-gray-500 mb-1">ROLE NAME *</label>
               <input value={form.name} onChange={e => setForm({...form, name: e.target.value})}
-                className="w-full md:w-64 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                className="w-full md:w-72 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
                 placeholder="e.g. Accountant, Manager..." />
             </div>
 
-            <div className="border border-gray-100 rounded-xl overflow-hidden mb-4">
+            <div className="border border-gray-100 rounded-xl overflow-hidden mb-5">
               <table className="w-full">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100">
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">PAGE</th>
-                    {ACCESS_LEVELS.map(a => (
-                      <th key={a.value} className="text-center px-4 py-3 text-xs font-semibold text-gray-500">{a.label}</th>
-                    ))}
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 w-40">PAGE</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">PERMISSIONS</th>
                   </tr>
                 </thead>
                 <tbody>
                   {PAGES.map((page, i) => (
                     <tr key={page.key} className={`border-b border-gray-50 ${i % 2 === 0 ? '' : 'bg-gray-50/30'}`}>
-                      <td className="px-4 py-3 text-sm text-gray-700">
+                      <td className="px-4 py-3 text-sm text-gray-700 font-medium">
                         <span className="mr-2">{page.icon}</span>{page.label}
                       </td>
-                      {ACCESS_LEVELS.map(level => (
-                        <td key={level.value} className="px-4 py-3 text-center">
-                          <input
-                            type="radio"
-                            name={`perm_${page.key}`}
-                            value={level.value}
-                            checked={(form.permissions[page.key] || 'none') === level.value}
-                            onChange={() => setPermission(page.key, level.value)}
-                            className="w-4 h-4 accent-blue-600 cursor-pointer"
-                          />
-                        </td>
-                      ))}
+                      <td className="px-4 py-3">
+                        <div className="flex gap-4 flex-wrap">
+                          {page.actions.map(action => {
+                            const checked = (form.permissions[page.key] || []).includes(action)
+                            return (
+                              <label key={action} className="flex items-center gap-1.5 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => toggleAction(page.key, action)}
+                                  className="w-4 h-4 accent-blue-600 cursor-pointer"
+                                />
+                                <span className={`text-xs font-medium ${checked ? ACTION_COLORS[action] : 'text-gray-400'}`}>
+                                  {ACTION_LABELS[action]}
+                                </span>
+                              </label>
+                            )
+                          })}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -225,18 +241,24 @@ export default function RolesPage() {
                 </div>
 
                 {/* Permissions Summary */}
-                <div className="flex flex-wrap gap-2 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mb-4">
                   {PAGES.map(page => {
-                    const perm = role.permissions[page.key] || 'none'
-                    if (perm === 'none') return null
-                    const level = ACCESS_LEVELS.find(a => a.value === perm)
+                    const perms = role.permissions?.[page.key] || []
+                    if (perms.length === 0) return null
                     return (
-                      <span key={page.key} className={`text-xs px-2 py-0.5 rounded-full font-medium ${level?.color}`}>
-                        {page.icon} {page.label} — {level?.label}
-                      </span>
+                      <div key={page.key} className="bg-gray-50 rounded-xl px-3 py-2">
+                        <p className="text-xs font-semibold text-gray-600 mb-1">{page.icon} {page.label}</p>
+                        <div className="flex gap-1 flex-wrap">
+                          {perms.map(action => (
+                            <span key={action} className={`text-xs font-medium ${ACTION_COLORS[action]}`}>
+                              {ACTION_LABELS[action]}
+                            </span>
+                          )).reduce((prev: any, curr: any, i: number) => i === 0 ? [curr] : [...prev, <span key={i} className="text-gray-300 text-xs">·</span>, curr], [])}
+                        </div>
+                      </div>
                     )
                   })}
-                  {Object.values(role.permissions).every(v => v === 'none') && (
+                  {PAGES.every(p => (role.permissions?.[p.key] || []).length === 0) && (
                     <span className="text-xs text-gray-400">No permissions assigned</span>
                   )}
                 </div>
@@ -276,10 +298,11 @@ export default function RolesPage() {
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {role.user_roles?.map(ur => (
-                        <div key={ur.user_id} className="flex items-center gap-1 bg-gray-50 rounded-lg px-2 py-1">
-                          <span className="text-xs text-gray-700">{ur.users?.full_name}</span>
+                        <div key={ur.user_id} className="flex items-center gap-1 bg-gray-50 border border-gray-100 rounded-lg px-2 py-1">
+                          <span className="text-xs text-gray-700 font-medium">{ur.users?.full_name}</span>
+                          <span className="text-xs text-gray-400">{ur.users?.email}</span>
                           <button onClick={() => handleRemoveUser(role.id, ur.user_id)}
-                            className="text-gray-400 hover:text-red-500 text-xs ml-1">✕</button>
+                            className="text-gray-300 hover:text-red-500 text-xs ml-1 font-bold">✕</button>
                         </div>
                       ))}
                     </div>
