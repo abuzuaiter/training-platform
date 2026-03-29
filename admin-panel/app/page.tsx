@@ -205,6 +205,13 @@ export default function Home() {
         <h2 className="text-lg font-bold text-gray-900 mb-4">Quick Access</h2>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          <Link href="/roles">
+            <div className="bg-white rounded-2xl p-5 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
+              <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center mb-3"><span className="text-xl">🔐</span></div>
+              <h3 className="font-semibold text-gray-900 text-sm">Roles</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Manage permissions</p>
+            </div>
+          </Link>
           <Link href="/organizations">
             <div className="bg-white rounded-2xl p-5 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
               <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mb-3"><span className="text-xl">🏢</span></div>
