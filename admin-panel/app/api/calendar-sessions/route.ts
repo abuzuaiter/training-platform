@@ -67,39 +67,45 @@ export async function POST(req: NextRequest) {
     const duration = end.getTime() - start.getTime()
     let current = new Date(start)
 
-    if (recurrence_type === 'daily') current.setDate(current.getDate() + 1)
-    else if (recurrence_type === 'weekly') current.setDate(current.getDate() + 7)
-    else if (recurrence_type === 'monthly') current.setMonth(current.getMonth() + 1)
+    // Start from next day
+    current.setDate(current.getDate() + 1)
 
     while (current <= endDate) {
       const dayName = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][current.getDay()]
 
-      if (recurrence_type === 'weekly' && recurrence_days && recurrence_days.length > 0) {
-        if (recurrence_days.includes(dayName)) {
-          sessions.push({
-            organization_id, activity_id: activity_id || null,
-            title, description: description || null,
-            start_time: current.toISOString(),
-            end_time: new Date(current.getTime() + duration).toISOString(),
-            capacity: capacity || 1, status: 'scheduled',
-            is_recurring: true, recurrence_type,
-            parent_session_id: session.id,
-          })
+      let shouldAdd = false
+
+      if (recurrence_type === 'daily') {
+        shouldAdd = true
+      } else if (recurrence_type === 'weekly') {
+        if (recurrence_days && recurrence_days.length > 0) {
+          shouldAdd = recurrence_days.includes(dayName)
+        } else {
+          // Same day each week
+          shouldAdd = current.getDay() === start.getDay()
         }
-        current.setDate(current.getDate() + 1)
-      } else {
+      } else if (recurrence_type === 'monthly') {
+        shouldAdd = current.getDate() === start.getDate()
+      }
+
+      if (shouldAdd) {
+        // Keep same time, just change the date
+        const sessionStart = new Date(current)
+        sessionStart.setHours(start.getHours(), start.getMinutes(), 0, 0)
+        const sessionEnd = new Date(sessionStart.getTime() + duration)
+
         sessions.push({
           organization_id, activity_id: activity_id || null,
           title, description: description || null,
-          start_time: current.toISOString(),
-          end_time: new Date(current.getTime() + duration).toISOString(),
+          start_time: sessionStart.toISOString(),
+          end_time: sessionEnd.toISOString(),
           capacity: capacity || 1, status: 'scheduled',
           is_recurring: true, recurrence_type,
           parent_session_id: session.id,
         })
-        if (recurrence_type === 'daily') current.setDate(current.getDate() + 1)
-        else if (recurrence_type === 'monthly') current.setMonth(current.getMonth() + 1)
       }
+
+      current.setDate(current.getDate() + 1)
     }
 
     if (sessions.length > 0) {
