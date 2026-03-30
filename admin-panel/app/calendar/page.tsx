@@ -14,7 +14,7 @@ interface Session {
   organization_id: string
   organizations: { name: string }
   activities: { name: string } | null
-  bookings: any[]
+  calendar_bookings: any[]
 }
 
 const ORG_COLORS = [
@@ -53,7 +53,7 @@ export default function CalendarPage() {
   async function loadAll() {
     setLoading(true)
     const [sessRes, orgsRes] = await Promise.all([
-      fetch('/api/sessions'), fetch('/api/organizations')
+      fetch('/api/calendar-sessions'), fetch('/api/organizations')
     ])
     const [sessData, orgsData] = await Promise.all([sessRes.json(), orgsRes.json()])
     setSessions(sessData || [])
@@ -79,7 +79,7 @@ export default function CalendarPage() {
       return
     }
     setSaving(true)
-    const res = await fetch('/api/sessions', {
+    const res = await fetch('/api/calendar-sessions', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...form, capacity: parseInt(form.capacity), ...recurring })
     })
@@ -96,7 +96,7 @@ export default function CalendarPage() {
   async function handleBook() {
     if (!bookForm.customer_id || !selectedSession) return
     setSaving(true)
-    const res = await fetch('/api/bookings', {
+    const res = await fetch('/api/calendar-bookings', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ session_id: selectedSession.id, customer_id: bookForm.customer_id, organization_id: selectedSession.organization_id, notes: bookForm.notes })
     })
@@ -106,22 +106,22 @@ export default function CalendarPage() {
       setShowBookForm(false)
       setBookForm({ customer_id: '', notes: '' })
       loadAll()
-      const updatedRes = await fetch(`/api/sessions/${selectedSession.id}`)
+      const updatedRes = await fetch(`/api/calendar-sessions/${selectedSession.id}`)
       setSelectedSession(await updatedRes.json())
     } else { setMessage(data.error || 'Error') }
     setSaving(false)
   }
 
   async function handleDeleteSession(id: string) {
-    await fetch(`/api/sessions/${id}`, { method: 'DELETE' })
+    await fetch(`/api/calendar-sessions/${id}`, { method: 'DELETE' })
     setSelectedSession(null)
     loadAll()
   }
 
   async function handleCancelBooking(bookingId: string) {
-    await fetch(`/api/bookings/${bookingId}`, { method: 'DELETE' })
+    await fetch(`/api/calendar-bookings/${bookingId}`, { method: 'DELETE' })
     if (selectedSession) {
-      const res = await fetch(`/api/sessions/${selectedSession.id}`)
+      const res = await fetch(`/api/calendar-sessions/${selectedSession.id}`)
       setSelectedSession(await res.json())
     }
     loadAll()
@@ -501,11 +501,11 @@ export default function CalendarPage() {
                   </div>
                 )}
 
-                {(selectedSession.bookings || []).length === 0 ? (
+                {(selectedSession.calendar_bookings || []).length === 0 ? (
                   <p className="text-xs text-gray-400">No bookings yet</p>
                 ) : (
                   <div className="space-y-1.5">
-                    {selectedSession.bookings?.map((b: any) => (
+                    {selectedSession.calendar_bookings?.map((b: any) => (
                       <div key={b.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-2 py-1.5">
                         <div>
                           <p className="text-xs font-medium text-gray-900">{b.customers?.full_name}</p>
@@ -524,7 +524,7 @@ export default function CalendarPage() {
               <div className="flex gap-2 border-t border-gray-100 pt-4">
                 <select value={selectedSession.status}
                   onChange={async e => {
-                    await fetch(`/api/sessions/${selectedSession.id}`, { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ status: e.target.value }) })
+                    await fetch(`/api/calendar-sessions/${selectedSession.id}`, { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ status: e.target.value }) })
                     loadAll()
                     setSelectedSession({...selectedSession, status: e.target.value})
                   }}
