@@ -10,7 +10,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   const { id } = await params
   const { data, error } = await supabaseAdmin
     .from('sessions')
-    .select('*, organizations(name), activities(name), bookings(*, customers(full_name, customer_code, mobile))')
+    .select('*, organizations(name), bookings(*, customers(full_name, customer_code, mobile))')
     .eq('id', id).single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)

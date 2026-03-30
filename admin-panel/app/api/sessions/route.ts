@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabaseAdmin
     .from('sessions')
-    .select('*, organizations(name), activities(name), bookings(id, status, customers(full_name))')
+    .select('*, organizations(name), bookings(id, status, customers(full_name))')
     .order('start_time', { ascending: true })
 
   if (org_id) query = query.eq('organization_id', org_id)
@@ -36,8 +36,17 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from('sessions')
-    .insert({ organization_id, activity_id: activity_id || null, title, description: description || null, start_time, end_time, capacity: capacity || 1, status: 'scheduled' })
-    .select('*, organizations(name), activities(name)').single()
+    .insert({
+      organization_id,
+      activity_id: activity_id || null,
+      title,
+      description: description || null,
+      start_time,
+      end_time,
+      capacity: capacity || 1,
+      status: 'scheduled'
+    })
+    .select('*, organizations(name)').single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
