@@ -56,13 +56,13 @@ export default function CalendarPage() {
   }
 
   async function loadActivities(orgId: string) {
-    const res = await fetch(\`/api/activities?org_id=\${orgId}\`)
+    const res = await fetch(`/api/activities?org_id=${orgId}`)
     const data = await res.json()
     setActivities(data || [])
   }
 
   async function loadCustomers(orgId: string) {
-    const res = await fetch(\`/api/organizations/\${orgId}/customers\`)
+    const res = await fetch(`/api/organizations/${orgId}/customers`)
     const data = await res.json()
     setCustomers(data || [])
   }
@@ -100,23 +100,22 @@ export default function CalendarPage() {
       setShowBookForm(false)
       setBookForm({ customer_id: '', notes: '' })
       loadAll()
-      const updatedRes = await fetch(\`/api/sessions/\${selectedSession.id}\`)
-      const updatedData = await updatedRes.json()
-      setSelectedSession(updatedData)
+      const updatedRes = await fetch(`/api/sessions/${selectedSession.id}`)
+      setSelectedSession(await updatedRes.json())
     } else { setMessage(data.error || 'Error') }
     setSaving(false)
   }
 
   async function handleDeleteSession(id: string) {
-    await fetch(\`/api/sessions/\${id}\`, { method: 'DELETE' })
+    await fetch(`/api/sessions/${id}`, { method: 'DELETE' })
     setSelectedSession(null)
     loadAll()
   }
 
   async function handleCancelBooking(bookingId: string) {
-    await fetch(\`/api/bookings/\${bookingId}\`, { method: 'DELETE' })
+    await fetch(`/api/bookings/${bookingId}`, { method: 'DELETE' })
     if (selectedSession) {
-      const res = await fetch(\`/api/sessions/\${selectedSession.id}\`)
+      const res = await fetch(`/api/sessions/${selectedSession.id}`)
       setSelectedSession(await res.json())
     }
     loadAll()
@@ -127,7 +126,6 @@ export default function CalendarPage() {
     return ORG_COLORS[idx] || 'bg-blue-500'
   }
 
-  // Get week days
   function getWeekDays(date: Date) {
     const start = new Date(date)
     start.setDate(date.getDate() - date.getDay())
@@ -138,13 +136,12 @@ export default function CalendarPage() {
     })
   }
 
-  // Get month days
   function getMonthDays(date: Date) {
     const year = date.getFullYear()
     const month = date.getMonth()
     const firstDay = new Date(year, month, 1).getDay()
     const daysInMonth = new Date(year, month + 1, 0).getDate()
-    const days = []
+    const days: (Date | null)[] = []
     for (let i = 0; i < firstDay; i++) days.push(null)
     for (let i = 1; i <= daysInMonth; i++) days.push(new Date(year, month, i))
     return days
@@ -171,6 +168,12 @@ export default function CalendarPage() {
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
+  function getHeaderTitle() {
+    if (view === 'month') return `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`
+    if (view === 'week') return `Week of ${weekDays[0].toLocaleDateString()}`
+    return currentDate.toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric' })
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white border-b border-gray-200 px-6 py-4">
@@ -194,7 +197,6 @@ export default function CalendarPage() {
           </div>
         )}
 
-        {/* New Session Form */}
         {showForm && (
           <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
             <h2 className="text-lg font-bold text-gray-900 mb-4">New Session</h2>
@@ -255,17 +257,12 @@ export default function CalendarPage() {
         )}
 
         <div className="flex gap-6">
-          {/* Calendar */}
           <div className="flex-1">
             {/* Controls */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <button onClick={() => navigate(-1)} className="p-2 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-600">←</button>
-                <h2 className="text-lg font-bold text-gray-900">
-                  {view === 'month' ? \`\${monthNames[currentDate.getMonth()]} \${currentDate.getFullYear()}\`
-                    : view === 'week' ? \`Week of \${weekDays[0].toLocaleDateString()}\`
-                    : currentDate.toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric' })}
-                </h2>
+                <h2 className="text-lg font-bold text-gray-900">{getHeaderTitle()}</h2>
                 <button onClick={() => navigate(1)} className="p-2 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-600">→</button>
                 <button onClick={() => setCurrentDate(new Date())} className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">Today</button>
               </div>
@@ -278,7 +275,7 @@ export default function CalendarPage() {
                 <div className="flex rounded-xl border border-gray-200 overflow-hidden">
                   {(['day', 'week', 'month'] as const).map(v => (
                     <button key={v} onClick={() => setView(v)}
-                      className={\`px-3 py-1.5 text-xs font-medium capitalize \${view === v ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}\`}>
+                      className={`px-3 py-1.5 text-xs font-medium capitalize ${view === v ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
                       {v}
                     </button>
                   ))}
@@ -296,16 +293,16 @@ export default function CalendarPage() {
                 </div>
                 <div className="grid grid-cols-7">
                   {monthDays.map((day, i) => (
-                    <div key={i} className={\`min-h-24 p-1.5 border-b border-r border-gray-50 \${day && day.toDateString() === new Date().toDateString() ? 'bg-blue-50' : ''}\`}>
+                    <div key={i} className={`min-h-24 p-1.5 border-b border-r border-gray-50 ${day && day.toDateString() === new Date().toDateString() ? 'bg-blue-50' : ''}`}>
                       {day && (
                         <>
-                          <p className={\`text-xs font-medium mb-1 \${day.toDateString() === new Date().toDateString() ? 'text-blue-600' : 'text-gray-500'}\`}>
+                          <p className={`text-xs font-medium mb-1 ${day.toDateString() === new Date().toDateString() ? 'text-blue-600' : 'text-gray-500'}`}>
                             {day.getDate()}
                           </p>
                           <div className="space-y-0.5">
                             {getSessionsForDay(day).slice(0, 3).map(s => (
                               <div key={s.id} onClick={() => setSelectedSession(s)}
-                                className={\`\${getOrgColor(s.organization_id)} text-white text-xs px-1.5 py-0.5 rounded-md cursor-pointer truncate hover:opacity-90\`}>
+                                className={`${getOrgColor(s.organization_id)} text-white text-xs px-1.5 py-0.5 rounded-md cursor-pointer truncate hover:opacity-90`}>
                                 {new Date(s.start_time).toLocaleTimeString('en', {hour:'2-digit', minute:'2-digit'})} {s.title}
                               </div>
                             ))}
@@ -326,9 +323,9 @@ export default function CalendarPage() {
               <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                 <div className="grid grid-cols-7 border-b border-gray-100">
                   {weekDays.map((day, i) => (
-                    <div key={i} className={\`py-3 text-center border-r border-gray-100 last:border-r-0 \${day.toDateString() === new Date().toDateString() ? 'bg-blue-50' : ''}\`}>
+                    <div key={i} className={`py-3 text-center border-r border-gray-100 last:border-r-0 ${day.toDateString() === new Date().toDateString() ? 'bg-blue-50' : ''}`}>
                       <p className="text-xs text-gray-500">{dayNames[i]}</p>
-                      <p className={\`text-lg font-bold \${day.toDateString() === new Date().toDateString() ? 'text-blue-600' : 'text-gray-900'}\`}>
+                      <p className={`text-lg font-bold ${day.toDateString() === new Date().toDateString() ? 'text-blue-600' : 'text-gray-900'}`}>
                         {day.getDate()}
                       </p>
                     </div>
@@ -339,7 +336,7 @@ export default function CalendarPage() {
                     <div key={i} className="border-r border-gray-50 last:border-r-0 p-1.5 space-y-1">
                       {getSessionsForDay(day).map(s => (
                         <div key={s.id} onClick={() => setSelectedSession(s)}
-                          className={\`\${getOrgColor(s.organization_id)} text-white text-xs p-2 rounded-lg cursor-pointer hover:opacity-90\`}>
+                          className={`${getOrgColor(s.organization_id)} text-white text-xs p-2 rounded-lg cursor-pointer hover:opacity-90`}>
                           <p className="font-semibold truncate">{s.title}</p>
                           <p className="opacity-80">{new Date(s.start_time).toLocaleTimeString('en', {hour:'2-digit', minute:'2-digit'})}</p>
                           <p className="opacity-80">{s.booked_count}/{s.capacity} booked</p>
@@ -362,8 +359,8 @@ export default function CalendarPage() {
                     <p className="text-center text-gray-400 py-12">No sessions today</p>
                   ) : getSessionsForDay(currentDate).map(s => (
                     <div key={s.id} onClick={() => setSelectedSession(s)}
-                      className={\`flex items-center gap-4 p-4 rounded-xl border border-gray-100 hover:border-blue-200 cursor-pointer\`}>
-                      <div className={\`w-2 h-16 rounded-full \${getOrgColor(s.organization_id)}\`}></div>
+                      className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 hover:border-blue-200 cursor-pointer">
+                      <div className={`w-2 h-16 rounded-full ${getOrgColor(s.organization_id)}`}></div>
                       <div className="flex-1">
                         <p className="font-semibold text-gray-900">{s.title}</p>
                         <p className="text-xs text-gray-400">{s.organizations?.name}</p>
@@ -374,7 +371,7 @@ export default function CalendarPage() {
                       <div className="text-right">
                         <p className="text-sm font-bold text-gray-900">{s.booked_count}/{s.capacity}</p>
                         <p className="text-xs text-gray-400">booked</p>
-                        <span className={\`text-xs px-2 py-0.5 rounded-full font-medium \${s.status === 'scheduled' ? 'bg-green-50 text-green-600' : s.status === 'cancelled' ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-500'}\`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.status === 'scheduled' ? 'bg-green-50 text-green-600' : s.status === 'cancelled' ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-500'}`}>
                           {s.status}
                         </span>
                       </div>
@@ -384,12 +381,12 @@ export default function CalendarPage() {
               </div>
             )}
 
-            {/* Org Colors Legend */}
+            {/* Legend */}
             {orgs.length > 0 && (
               <div className="mt-4 flex flex-wrap gap-3">
                 {orgs.map((org, i) => (
                   <div key={org.id} className="flex items-center gap-1.5">
-                    <div className={\`w-3 h-3 rounded-full \${ORG_COLORS[i % ORG_COLORS.length]}\`}></div>
+                    <div className={`w-3 h-3 rounded-full ${ORG_COLORS[i % ORG_COLORS.length]}`}></div>
                     <span className="text-xs text-gray-500">{org.name}</span>
                   </div>
                 ))}
@@ -397,7 +394,7 @@ export default function CalendarPage() {
             )}
           </div>
 
-          {/* Session Detail Panel */}
+          {/* Session Detail */}
           {selectedSession && (
             <div className="w-80 bg-white rounded-2xl border border-gray-200 p-5 h-fit sticky top-6">
               <div className="flex items-start justify-between mb-4">
@@ -415,19 +412,16 @@ export default function CalendarPage() {
                   </div>
                 )}
                 <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <span>🕐</span> {new Date(selectedSession.start_time).toLocaleString()} — {new Date(selectedSession.end_time).toLocaleTimeString('en', {hour:'2-digit', minute:'2-digit'})}
+                  <span>🕐</span> {new Date(selectedSession.start_time).toLocaleString()}
                 </div>
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                   <span>👥</span> {selectedSession.booked_count} / {selectedSession.capacity} booked
                 </div>
-                <div>
-                  <span className={\`text-xs px-2 py-0.5 rounded-full font-medium \${selectedSession.status === 'scheduled' ? 'bg-green-50 text-green-600' : selectedSession.status === 'cancelled' ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-500'}\`}>
-                    {selectedSession.status}
-                  </span>
-                </div>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${selectedSession.status === 'scheduled' ? 'bg-green-50 text-green-600' : selectedSession.status === 'cancelled' ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-500'}`}>
+                  {selectedSession.status}
+                </span>
               </div>
 
-              {/* Bookings */}
               <div className="border-t border-gray-100 pt-4 mb-4">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs font-semibold text-gray-500">BOOKINGS</p>
@@ -467,7 +461,7 @@ export default function CalendarPage() {
                       <div key={b.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-2 py-1.5">
                         <div>
                           <p className="text-xs font-medium text-gray-900">{b.customers?.full_name}</p>
-                          <span className={\`text-xs \${b.status === 'confirmed' ? 'text-green-600' : b.status === 'attended' ? 'text-blue-600' : 'text-red-500'}\`}>
+                          <span className={`text-xs ${b.status === 'confirmed' ? 'text-green-600' : b.status === 'attended' ? 'text-blue-600' : 'text-red-500'}`}>
                             {b.status}
                           </span>
                         </div>
@@ -479,11 +473,10 @@ export default function CalendarPage() {
                 )}
               </div>
 
-              {/* Actions */}
               <div className="flex gap-2 border-t border-gray-100 pt-4">
                 <select value={selectedSession.status}
                   onChange={async e => {
-                    await fetch(\`/api/sessions/\${selectedSession.id}\`, { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ status: e.target.value }) })
+                    await fetch(`/api/sessions/${selectedSession.id}`, { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ status: e.target.value }) })
                     loadAll()
                     setSelectedSession({...selectedSession, status: e.target.value})
                   }}
