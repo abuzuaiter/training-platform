@@ -41,6 +41,12 @@ export default function CalendarPage() {
     description: '', start_time: '', end_time: '', capacity: '1'
   })
   const [bookForm, setBookForm] = useState({ customer_id: '', notes: '' })
+  const [recurring, setRecurring] = useState({
+    is_recurring: false,
+    recurrence_type: 'weekly',
+    recurrence_days: [] as string[],
+    recurrence_end_date: ''
+  })
 
   useEffect(() => { loadAll() }, [])
 
@@ -75,7 +81,7 @@ export default function CalendarPage() {
     setSaving(true)
     const res = await fetch('/api/sessions', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, capacity: parseInt(form.capacity) })
+      body: JSON.stringify({ ...form, capacity: parseInt(form.capacity), ...recurring })
     })
     const data = await res.json()
     if (res.ok) {
@@ -241,6 +247,48 @@ export default function CalendarPage() {
                 <label className="block text-xs font-semibold text-gray-500 mb-1">DESCRIPTION</label>
                 <input value={form.description} onChange={e => setForm({...form, description: e.target.value})}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" placeholder="Optional..." />
+              </div>
+              <div className="md:col-span-2">
+                <label className="flex items-center gap-3 cursor-pointer mb-3">
+                  <input type="checkbox" checked={recurring.is_recurring} onChange={e => setRecurring({...recurring, is_recurring: e.target.checked})} className="w-4 h-4 accent-blue-600" />
+                  <span className="text-sm font-medium text-gray-700">Recurring Session</span>
+                </label>
+                {recurring.is_recurring && (
+                  <div className="bg-blue-50 rounded-xl p-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-1">REPEAT</label>
+                        <select value={recurring.recurrence_type} onChange={e => setRecurring({...recurring, recurrence_type: e.target.value})}
+                          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none">
+                          <option value="daily">Daily — يومي</option>
+                          <option value="weekly">Weekly — أسبوعي</option>
+                          <option value="monthly">Monthly — شهري</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-1">END DATE</label>
+                        <input value={recurring.recurrence_end_date} onChange={e => setRecurring({...recurring, recurrence_end_date: e.target.value})}
+                          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none" type="date" />
+                      </div>
+                    </div>
+                    {recurring.recurrence_type === 'weekly' && (
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-2">DAYS</label>
+                        <div className="flex gap-2 flex-wrap">
+                          {['sunday','monday','tuesday','wednesday','thursday','friday','saturday'].map(day => (
+                            <label key={day} className="flex items-center gap-1 cursor-pointer">
+                              <input type="checkbox"
+                                checked={recurring.recurrence_days.includes(day)}
+                                onChange={e => setRecurring({...recurring, recurrence_days: e.target.checked ? [...recurring.recurrence_days, day] : recurring.recurrence_days.filter(d => d !== day)})}
+                                className="w-3 h-3 accent-blue-600" />
+                              <span className="text-xs text-gray-600 capitalize">{day.slice(0,3)}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex gap-3 mt-4">
