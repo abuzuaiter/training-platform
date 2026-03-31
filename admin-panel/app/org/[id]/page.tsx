@@ -19,7 +19,7 @@ export default function OrgDashboard() {
       fetch(`/api/organizations/${id}`),
       fetch(`/api/organizations/${id}/members`),
       fetch(`/api/organizations/${id}/customers`),
-      fetch(`/api/activities?org_id=${id}`),
+      fetch(`/api/activities?org_id=${id}`).catch(() => ({ json: () => [] })),
       fetch(`/api/organizations/${id}/plans`),
     ])
     const [orgData, membersData, customersData, activitiesData, plansData] = await Promise.all([
