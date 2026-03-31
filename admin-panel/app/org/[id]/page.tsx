@@ -146,6 +146,13 @@ export default function OrgDashboard() {
               <p className="text-xs text-gray-400 mt-0.5">Manage activities & schedule</p>
             </div>
           </Link>
+          <Link href={`/org/${id}/calendar`}>
+            <div className="bg-white rounded-2xl p-5 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
+              <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mb-3"><span className="text-xl">📅</span></div>
+              <h3 className="font-semibold text-gray-900 text-sm">Calendar</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Sessions & bookings</p>
+            </div>
+          </Link>
           <Link href={`/org/${id}/invitations`}>
             <div className="bg-white rounded-2xl p-5 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
               <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center mb-3"><span className="text-xl">✉️</span></div>
