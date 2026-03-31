@@ -15,23 +15,26 @@ export default function OrgDashboard() {
   useEffect(() => { if (id) loadAll() }, [id])
 
   async function loadAll() {
-    const [orgRes, membersRes, customersRes, activitiesRes, plansRes] = await Promise.all([
-      fetch(`/api/organizations/${id}`),
-      fetch(`/api/organizations/${id}/members`),
-      fetch(`/api/organizations/${id}/customers`),
-      fetch(`/api/activities?org_id=${id}`).catch(() => ({ json: () => [] })),
-      fetch(`/api/organizations/${id}/plans`),
-    ])
-    const [orgData, membersData, customersData, activitiesData, plansData] = await Promise.all([
-      orgRes.json(), membersRes.json(), customersRes.json(), activitiesRes.json(), plansRes.json()
-    ])
-    setOrg(orgData)
-    setPlan(plansData?.[0] || null)
-    setStats({
-      members: (membersData || []).length,
-      customers: (customersData || []).length,
-      activities: (activitiesData || []).length,
-    })
+    try {
+      const [orgRes, membersRes, customersRes, plansRes] = await Promise.all([
+        fetch(`/api/organizations/${id}`),
+        fetch(`/api/organizations/${id}/members`),
+        fetch(`/api/organizations/${id}/customers`),
+        fetch(`/api/organizations/${id}/plans`),
+      ])
+      const [orgData, membersData, customersData, plansData] = await Promise.all([
+        orgRes.json(), membersRes.json(), customersRes.json(), plansRes.json()
+      ])
+      setOrg(orgData)
+      setPlan(plansData?.[0] || null)
+      setStats({
+        members: (membersData || []).length,
+        customers: (customersData || []).length,
+        activities: 0,
+      })
+    } catch (e) {
+      console.error(e)
+    }
     setLoading(false)
   }
 
@@ -65,14 +68,10 @@ export default function OrgDashboard() {
       </nav>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
-
-        {/* Plan expiring warning */}
         {planExpiringSoon && (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-6 flex items-center gap-3">
             <span className="text-amber-500 text-xl">⚠️</span>
-            <p className="text-amber-700 text-sm font-medium">
-              Your plan expires on {new Date(plan.end_date).toLocaleDateString()} — please contact us to renew.
-            </p>
+            <p className="text-amber-700 text-sm font-medium">Your plan expires on {new Date(plan.end_date).toLocaleDateString()} — please contact us to renew.</p>
           </div>
         )}
 
@@ -83,12 +82,11 @@ export default function OrgDashboard() {
           </div>
         )}
 
-        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-2xl border border-gray-200 p-5">
             <p className="text-xs font-semibold text-gray-400 mb-1">MEMBERS</p>
             <p className="text-3xl font-bold text-blue-600">{stats.members}</p>
-            {plan && <p className="text-xs text-gray-400 mt-1">Max staff: {plan.plans?.max_staff || '—'}</p>}
+            {plan && <p className="text-xs text-gray-400 mt-1">Max: {plan.plans?.max_staff || '—'}</p>}
           </div>
           <div className="bg-white rounded-2xl border border-gray-200 p-5">
             <p className="text-xs font-semibold text-gray-400 mb-1">CUSTOMERS</p>
@@ -115,9 +113,15 @@ export default function OrgDashboard() {
           </div>
         </div>
 
-        {/* Quick Access */}
         <h2 className="text-lg font-bold text-gray-900 mb-4">Quick Access</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Link href={`/org/${id}/calendar`}>
+            <div className="bg-white rounded-2xl p-5 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
+              <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mb-3"><span className="text-xl">📅</span></div>
+              <h3 className="font-semibold text-gray-900 text-sm">Calendar</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Sessions & bookings</p>
+            </div>
+          </Link>
           <Link href={`/org/${id}/customers`}>
             <div className="bg-white rounded-2xl p-5 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
               <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center mb-3"><span className="text-xl">🧑‍🤝‍🧑</span></div>
@@ -143,14 +147,7 @@ export default function OrgDashboard() {
             <div className="bg-white rounded-2xl p-5 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
               <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center mb-3"><span className="text-xl">📋</span></div>
               <h3 className="font-semibold text-gray-900 text-sm">Activities</h3>
-              <p className="text-xs text-gray-400 mt-0.5">Manage activities & schedule</p>
-            </div>
-          </Link>
-          <Link href={`/org/${id}/calendar`}>
-            <div className="bg-white rounded-2xl p-5 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
-              <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mb-3"><span className="text-xl">📅</span></div>
-              <h3 className="font-semibold text-gray-900 text-sm">Calendar</h3>
-              <p className="text-xs text-gray-400 mt-0.5">Sessions & bookings</p>
+              <p className="text-xs text-gray-400 mt-0.5">Manage activities</p>
             </div>
           </Link>
           <Link href={`/org/${id}/invitations`}>
