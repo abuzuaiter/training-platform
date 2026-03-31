@@ -8,7 +8,7 @@ export default function OrgDashboard() {
   const id = params.id as string
   const router = useRouter()
   const [org, setOrg] = useState<any>(null)
-  const [stats, setStats] = useState({ members: 0, customers: 0, activities: 0 })
+  const [stats, setStats] = useState({ members: 0, customers: 0 })
   const [plan, setPlan] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
@@ -16,22 +16,26 @@ export default function OrgDashboard() {
 
   async function loadAll() {
     try {
-      const [orgRes, membersRes, customersRes, plansRes] = await Promise.all([
-        fetch(`/api/organizations/${id}`),
-        fetch(`/api/organizations/${id}/members`),
-        fetch(`/api/organizations/${id}/customers`),
-        fetch(`/api/organizations/${id}/plans`),
-      ])
-      const [orgData, membersData, customersData, plansData] = await Promise.all([
-        orgRes.json(), membersRes.json(), customersRes.json(), plansRes.json()
-      ])
-      setOrg(orgData)
-      setPlan(plansData?.[0] || null)
-      setStats({
-        members: (membersData || []).length,
-        customers: (customersData || []).length,
-        activities: 0,
-      })
+      const orgRes = await fetch(`/api/organizations/${id}`)
+      if (orgRes.ok) setOrg(await orgRes.json())
+
+      const plansRes = await fetch(`/api/organizations/${id}/plans`)
+      if (plansRes.ok) {
+        const plansData = await plansRes.json()
+        setPlan(plansData?.[0] || null)
+      }
+
+      const membersRes = await fetch(`/api/organizations/${id}/members`)
+      if (membersRes.ok) {
+        const membersData = await membersRes.json()
+        setStats(prev => ({ ...prev, members: (membersData || []).length }))
+      }
+
+      const customersRes = await fetch(`/api/organizations/${id}/customers`)
+      if (customersRes.ok) {
+        const customersData = await customersRes.json()
+        setStats(prev => ({ ...prev, customers: (customersData || []).length }))
+      }
     } catch (e) {
       console.error(e)
     }
@@ -94,22 +98,21 @@ export default function OrgDashboard() {
             {plan && <p className="text-xs text-gray-400 mt-1">Max: {plan.plans?.max_customers || '—'}</p>}
           </div>
           <div className="bg-white rounded-2xl border border-gray-200 p-5">
-            <p className="text-xs font-semibold text-gray-400 mb-1">ACTIVITIES</p>
-            <p className="text-3xl font-bold text-green-600">{stats.activities}</p>
-          </div>
-          <div className="bg-white rounded-2xl border border-gray-200 p-5">
             <p className="text-xs font-semibold text-gray-400 mb-1">PLAN</p>
             {plan ? (
               <>
                 <p className="text-sm font-bold text-gray-900 mt-1">{plan.plans?.name}</p>
                 <p className="text-xs text-gray-400">Until {new Date(plan.end_date).toLocaleDateString()}</p>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${plan.payment_status === 'paid' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
-                  {plan.payment_status}
-                </span>
               </>
             ) : (
               <p className="text-sm text-red-500 font-medium mt-1">No Plan</p>
             )}
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-200 p-5">
+            <p className="text-xs font-semibold text-gray-400 mb-1">STATUS</p>
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${org?.status === 'active' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
+              {org?.status || 'active'}
+            </span>
           </div>
         </div>
 
@@ -133,7 +136,7 @@ export default function OrgDashboard() {
             <div className="bg-white rounded-2xl p-5 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
               <div className="w-10 h-10 bg-teal-100 rounded-xl flex items-center justify-center mb-3"><span className="text-xl">💳</span></div>
               <h3 className="font-semibold text-gray-900 text-sm">Subscriptions</h3>
-              <p className="text-xs text-gray-400 mt-0.5">Track customer subscriptions</p>
+              <p className="text-xs text-gray-400 mt-0.5">Track subscriptions</p>
             </div>
           </Link>
           <Link href={`/org/${id}/members`}>
