@@ -34,7 +34,7 @@ export default function LoginPage() {
       {/* Logo */}
       <div className="mb-8 text-center">
         <div className="inline-flex items-center gap-2 mb-2">
-          <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center">
+          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
               <rect x="3" y="4" width="18" height="18" rx="3" stroke="white" strokeWidth="2"/>
               <path d="M3 9h18" stroke="white" strokeWidth="2"/>
@@ -70,7 +70,7 @@ export default function LoginPage() {
               onKeyDown={e => e.key === 'Enter' && handleLogin()}
               type="email"
               placeholder="you@example.com"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
             />
           </div>
 
@@ -85,19 +85,19 @@ export default function LoginPage() {
               onKeyDown={e => e.key === 'Enter' && handleLogin()}
               type="password"
               placeholder="••••••••••"
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
             />
           </div>
 
           <div className="flex items-center gap-2">
-            <input type="checkbox" id="remember" className="w-4 h-4 accent-green-600 cursor-pointer" />
+            <input type="checkbox" id="remember" className="w-4 h-4 accent-blue-600 cursor-pointer" />
             <label htmlFor="remember" className="text-sm text-gray-600 cursor-pointer">Remember me</label>
           </div>
 
           <button
             onClick={handleLogin}
             disabled={loading}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-xl text-sm transition disabled:opacity-60 mt-2">
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl text-sm transition disabled:opacity-60 mt-2">
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </div>
