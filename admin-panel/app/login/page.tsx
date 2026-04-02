@@ -77,7 +77,7 @@ export default function LoginPage() {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-sm font-medium text-gray-700">Password</label>
-              <span className="text-sm text-green-600 font-medium cursor-pointer hover:underline">Forgot password?</span>
+              <span className="text-sm text-blue-600 font-medium cursor-pointer hover:underline">Forgot password?</span>
             </div>
             <input
               value={password}
@@ -104,7 +104,7 @@ export default function LoginPage() {
 
         <p className="text-center text-sm text-gray-500 mt-6">
           Don't have an account?{' '}
-          <span className="text-green-600 font-semibold cursor-pointer hover:underline">Create one</span>
+          <span className="text-blue-600 font-semibold cursor-pointer hover:underline">Create one</span>
         </p>
       </div>
     </div>
