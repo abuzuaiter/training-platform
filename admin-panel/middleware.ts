@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/logout']
+const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/logout', '/register', '/api/calendar-sessions', '/api/calendar-bookings', '/api/customers/lookup']
 
 // Map pages to their route paths
 const PAGE_ROUTES: Record<string, string> = {
@@ -31,6 +31,12 @@ export function middleware(req: NextRequest) {
   }
 
   // No session — redirect to login
+  // Allow all API routes with session
+  if (pathname.startsWith('/api/')) {
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.next()
+  }
+
   if (!session) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
