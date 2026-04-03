@@ -29,6 +29,8 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
     { href: `/org/${id}/subscriptions`, label: 'Subscriptions', icon: '💳' },
     { href: `/org/${id}/members`, label: 'Members', icon: '👥' },
     { href: `/org/${id}/activities`, label: 'Activities', icon: '📋' },
+    { href: `/org/${id}/packages`, label: 'Packages', icon: '📦' },
+    { href: `/org/${id}/packages`, label: 'Packages', icon: '📦' },
     { href: `/org/${id}/invitations`, label: 'Invitations', icon: '✉️' },
   ]
 

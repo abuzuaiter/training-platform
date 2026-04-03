@@ -12,10 +12,6 @@ interface Plan {
   discount_percentage: number
   billing_cycle: string
   is_active: boolean
-  type: string
-  sessions_count: number | null
-  absence_policy: string
-  enable_notification: boolean
 }
 
 export default function PlansPage() {
