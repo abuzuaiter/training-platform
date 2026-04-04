@@ -11,6 +11,9 @@ export default function OrgMembersPage() {
   const [search, setSearch] = useState('')
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState<string | null>(null)
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [addForm, setAddForm] = useState({ email: '', role: 'coach' })
+  const [adding, setAdding] = useState(false)
 
   useEffect(() => { if (id) load() }, [id])
 
@@ -19,6 +22,32 @@ export default function OrgMembersPage() {
     const res = await fetch(`/api/organizations/${id}/members`)
     setMembers(res.ok ? await res.json() : [])
     setLoading(false)
+  }
+
+  async function handleAddMember() {
+    if (!addForm.email) { setMessage('Email is required'); return }
+    setAdding(true)
+    // Find user by email
+    const userRes = await fetch(`/api/users?email=${addForm.email}`)
+    const users = userRes.ok ? await userRes.json() : []
+    const user = users.find((u: any) => u.email === addForm.email)
+    if (!user) { setMessage('User not found — send invitation instead'); setAdding(false); return }
+
+    const res = await fetch(`/api/organizations/${id}/members`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: user.id, role: addForm.role, status: 'active' })
+    })
+    if (res.ok) {
+      setMessage('Member added!')
+      setShowAddForm(false)
+      setAddForm({ email: '', role: 'coach' })
+      load()
+    } else {
+      const d = await res.json()
+      setMessage(d.error || 'Error')
+    }
+    setAdding(false)
+    setTimeout(() => setMessage(''), 3000)
   }
 
   async function updateRole(memberId: string, role: string) {
@@ -69,15 +98,60 @@ export default function OrgMembersPage() {
           <h1 className="text-lg font-bold text-gray-900">Members</h1>
           <p className="text-xs text-gray-400">{filtered.length} members</p>
         </div>
-        <Link href={`/org/${id}/invitations`}
-          className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
-          + Invite Member
-        </Link>
+        <div className="flex gap-2">
+          <button onClick={() => setShowAddForm(!showAddForm)}
+            className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-green-700 transition">
+            + Add Directly
+          </button>
+          <Link href={`/org/${id}/invitations`}
+            className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
+            + Invite
+          </Link>
+        </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-6 py-8">
         {message && (
           <div className="mb-4 px-4 py-3 rounded-xl bg-green-50 text-green-700 text-sm font-medium">{message}</div>
+        )}
+
+        {showAddForm && (
+          <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
+            <h2 className="text-base font-bold text-gray-900 mb-3">Add Member Directly</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold text-gray-500 mb-1">EMAIL *</label>
+                <input value={addForm.email} onChange={e => setAddForm({...addForm, email: e.target.value})}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                  placeholder="member@email.com" type="email" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">ROLE</label>
+                <select value={addForm.role} onChange={e => setAddForm({...addForm, role: e.target.value})}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none">
+                  <option value="admin">Admin</option>
+                  <option value="coach">Coach</option>
+                  <option value="trainer">Trainer</option>
+                  <option value="doctor">Doctor</option>
+                  <option value="therapist">Therapist</option>
+                  <option value="receptionist">Receptionist</option>
+                  <option value="trainee">Trainee</option>
+                  <option value="parent">Parent</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-3">
+              <button onClick={handleAddMember} disabled={adding}
+                className="bg-green-600 text-white px-5 py-2 rounded-xl text-sm font-semibold hover:bg-green-700 transition disabled:opacity-50">
+                {adding ? 'Adding...' : 'Add Member'}
+              </button>
+              <button onClick={() => setShowAddForm(false)}
+                className="border border-gray-200 text-gray-600 px-5 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50">
+                Cancel
+              </button>
+            </div>
+          </div>
         )}
 
         <input value={search} onChange={e => setSearch(e.target.value)}
