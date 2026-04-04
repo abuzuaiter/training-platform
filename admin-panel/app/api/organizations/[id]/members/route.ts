@@ -71,3 +71,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   await logAction(supabaseAdmin, 'create', 'member', data.id, { user_id, role, org: id })
   return NextResponse.json(data)
 }
+
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const { member_id, role, status } = await req.json()
+  const updateData: any = {}
+  if (role) updateData.role = role
+  if (status) updateData.status = status
+  const { data, error } = await supabaseAdmin
+    .from('organization_members')
+    .update(updateData)
+    .eq('id', member_id)
+    .eq('organization_id', id)
+    .select().single()
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json(data)
+}
