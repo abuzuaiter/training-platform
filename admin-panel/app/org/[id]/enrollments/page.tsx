@@ -91,7 +91,10 @@ export default function OrgEnrollmentsPage() {
     if (!pkg) return []
 
     const sessions: { title: string; start_time: string; end_time: string; }[] = []
-    const base = startDate ? new Date(startDate) : new Date(selectedEnrollment?.start_date || new Date())
+    const baseStr = startDate || selectedEnrollment?.start_date
+    if (!baseStr) return []
+    const base = new Date(baseStr)
+    if (isNaN(base.getTime())) return []
     const totalSessions = pkg.type === 'sessions' ? pkg.sessions_count : 30
     const enabledDays = DAY_NAMES.filter(d => schedule[d.key].enabled)
     if (enabledDays.length === 0) return []
