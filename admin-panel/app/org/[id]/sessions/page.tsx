@@ -20,6 +20,9 @@ export default function OrgSessionsPage() {
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
+  const [editSession, setEditSession] = useState<any>(null)
+  const [editForm, setEditForm] = useState({ title: '', capacity: '', status: '' })
+  const [editSaving, setEditSaving] = useState(false)
   const [form, setForm] = useState({
     title: '', capacity: '10', is_recurring: false,
     recurrence_type: 'weekly', recurrence_days: [] as string[],
@@ -34,6 +37,23 @@ export default function OrgSessionsPage() {
     const res = await fetch(`/api/calendar-sessions?org_id=${id}`)
     setSessions(res.ok ? await res.json() : [])
     setLoading(false)
+  }
+
+  async function handleEdit(sess: any) {
+    setEditSession(sess)
+    setEditForm({ title: sess.title, capacity: String(sess.capacity), status: sess.status })
+  }
+
+  async function saveEdit() {
+    if (!editSession) return
+    setEditSaving(true)
+    const res = await fetch(`/api/calendar-sessions/${editSession.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: editForm.title, capacity: parseInt(editForm.capacity), status: editForm.status })
+    })
+    if (res.ok) { setMessage('Session updated!'); setEditSession(null); load() }
+    else { const d = await res.json(); setMessage(d.error || 'Error') }
+    setEditSaving(false)
   }
 
   async function handleCreate() {
@@ -242,25 +262,68 @@ export default function OrgSessionsPage() {
         ) : (
           <div className="grid gap-3">
             {sessions.map(sess => (
-              <div key={sess.id} className={`bg-white rounded-2xl border border-gray-200 p-4 flex items-center justify-between ${sess.status === 'cancelled' ? 'opacity-50' : ''}`}>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 text-lg">
-                    {sess.is_recurring ? '🔄' : '📅'}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900 text-sm">{sess.title}</p>
-                    <p className="text-xs text-gray-400">{formatDateTime(sess.start_time)}</p>
-                    <div className="flex gap-2 mt-0.5">
-                      <span className="text-xs text-gray-400">👥 {sess.booked_count}/{sess.capacity}</span>
-                      {sess.is_recurring && <span className="text-xs bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full">🔄 Recurring</span>}
-                      <span className={`text-xs px-1.5 py-0.5 rounded-full ${sess.status === 'scheduled' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'}`}>{sess.status}</span>
+              <div key={sess.id} className={`bg-white rounded-2xl border border-gray-200 overflow-hidden ${sess.status === 'cancelled' ? 'opacity-60' : ''}`}>
+                <div className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 text-lg">
+                      {sess.is_recurring ? '🔄' : '📅'}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900 text-sm">{sess.title}</p>
+                      <p className="text-xs text-gray-400">{formatDateTime(sess.start_time)}</p>
+                      <div className="flex gap-2 mt-0.5">
+                        <span className="text-xs text-gray-400">👥 {sess.booked_count}/{sess.capacity}</span>
+                        {sess.is_recurring && <span className="text-xs bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full">🔄 Recurring</span>}
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${sess.status === 'scheduled' ? 'bg-green-50 text-green-600' : sess.status === 'cancelled' ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-500'}`}>{sess.status}</span>
+                      </div>
                     </div>
                   </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => editSession?.id === sess.id ? setEditSession(null) : handleEdit(sess)}
+                      className="text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 font-semibold hover:bg-blue-100 transition">
+                      {editSession?.id === sess.id ? 'Close' : '✏️ Edit'}
+                    </button>
+                    <button onClick={() => handleDelete(sess.id)}
+                      className="text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-600 font-semibold hover:bg-red-100 transition">
+                      🗑️ Delete
+                    </button>
+                  </div>
                 </div>
-                <button onClick={() => handleDelete(sess.id)}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-600 font-semibold hover:bg-red-100 transition">
-                  Delete
-                </button>
+                {editSession?.id === sess.id && (
+                  <div className="border-t border-gray-100 bg-gray-50 px-4 py-3">
+                    <div className="grid grid-cols-3 gap-3 mb-3">
+                      <div className="col-span-2">
+                        <label className="block text-xs font-semibold text-gray-500 mb-1">TITLE</label>
+                        <input value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 bg-white" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-1">CAPACITY</label>
+                        <input value={editForm.capacity} onChange={e => setEditForm({...editForm, capacity: e.target.value})}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 bg-white" type="number" min="1" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-1">STATUS</label>
+                        <select value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none">
+                          <option value="scheduled">Scheduled</option>
+                          <option value="completed">Completed</option>
+                          <option value="cancelled">Cancelled</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={saveEdit} disabled={editSaving}
+                        className="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-700 disabled:opacity-50">
+                        {editSaving ? 'Saving...' : 'Save Changes'}
+                      </button>
+                      <button onClick={() => setEditSession(null)}
+                        className="border border-gray-200 text-gray-600 px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-100">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
