@@ -23,22 +23,21 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
   }
 
   const navItems = [
-    { href: `/org/${id}/dashboard`, label: 'Dashboard', icon: '⊞' },
-    { href: `/org/${id}/calendar`, label: 'Calendar', icon: '◫' },
-    { href: `/org/${id}/customers`, label: 'Customers', icon: '◉' },
-    { href: `/org/${id}/members`, label: 'Members', icon: '◎' },
-    { href: `/org/${id}/sessions`, label: 'Sessions', icon: '◈' },
-    { href: `/org/${id}/packages`, label: 'Packages', icon: '◧' },
-    { href: `/org/${id}/enrollments`, label: 'Enrollments', icon: '◪' },
-    { href: `/org/${id}/invitations`, label: 'Invitations', icon: '◻' },
+    { href: `/org/${id}/dashboard`, label: 'Dashboard' },
+    { href: `/org/${id}/calendar`, label: 'Calendar' },
+    { href: `/org/${id}/sessions`, label: 'Sessions' },
+    { href: `/org/${id}/customers`, label: 'Customers' },
+    { href: `/org/${id}/enrollments`, label: 'Enrollments' },
+    { href: `/org/${id}/packages`, label: 'Packages' },
+    { href: `/org/${id}/members`, label: 'Members' },
+    { href: `/org/${id}/invitations`, label: 'Invitations' },
   ]
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <div className="w-64 bg-white border-r border-gray-200 flex flex-col fixed h-full z-10">
+      <div className="w-60 bg-white border-r border-gray-200 flex flex-col fixed h-full z-10">
         {/* Logo */}
-        <div className="px-6 py-5 border-b border-gray-100">
+        <div className="px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -56,24 +55,23 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Org Info */}
-        <div className="px-6 py-4 border-b border-gray-100">
+        <div className="px-5 py-3 border-b border-gray-100">
           <p className="text-sm font-bold text-gray-900 truncate">{org?.name || 'Organization'}</p>
           <p className="text-xs text-gray-400 truncate">{org?.category || ''}</p>
           {plan && (
-            <span className={`mt-1.5 inline-block text-xs px-2 py-0.5 rounded-full font-medium ${plan.payment_status === 'paid' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
+            <span className={`mt-1 inline-block text-xs px-2 py-0.5 rounded-full font-medium ${plan.payment_status === 'paid' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
               {plan.plans?.name}
             </span>
           )}
         </div>
 
-        {/* Nav Items */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+        {/* Nav */}
+        <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
           {navItems.map(item => {
-            const isActive = pathname === item.href || (item.href !== `/org/${id}` && pathname.startsWith(item.href))
+            const isActive = pathname === item.href || (item.href !== `/org/${id}/dashboard` && pathname.startsWith(item.href))
             return (
               <Link key={item.href} href={item.href}>
-                <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
-                  <span className="text-base">{item.icon}</span>
+                <div className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
                   {item.label}
                 </div>
               </Link>
@@ -82,7 +80,7 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* Bottom */}
-        <div className="px-3 py-4 border-t border-gray-100 space-y-1">
+        <div className="px-3 py-3 border-t border-gray-100">
           {plan && (
             <div className="px-3 py-2 bg-gray-50 rounded-xl mb-2">
               <p className="text-xs text-gray-500">Plan expires</p>
@@ -90,14 +88,13 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
             </div>
           )}
           <button onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition">
+            className="w-full px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition text-left">
             Sign out
           </button>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 ml-64">
+      <div className="flex-1 ml-60">
         {children}
       </div>
     </div>
