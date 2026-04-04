@@ -21,7 +21,7 @@ export default function OrgSessionsPage() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [editSession, setEditSession] = useState<any>(null)
-  const [editForm, setEditForm] = useState({ title: '', capacity: '', status: '', date: '', start_time: '', end_time: '' })
+  const [editForm, setEditForm] = useState({ title: '', capacity: '', status: '', date: '', start_time: '', end_time: '', recurrence_days: [] as string[] })
   const [editSaving, setEditSaving] = useState(false)
   const [form, setForm] = useState({
     title: '', capacity: '10', is_recurring: false,
@@ -54,6 +54,7 @@ export default function OrgSessionsPage() {
       date: dateStr,
       start_time: startStr,
       end_time: endStr,
+      recurrence_days: sess.recurrence_days || [],
     })
   }
 
@@ -61,7 +62,7 @@ export default function OrgSessionsPage() {
     if (!editSession) return
     setEditSaving(true)
     const QATAR_OFFSET = 3 * 60 * 60 * 1000
-    let updateBody: any = { title: editForm.title, capacity: parseInt(editForm.capacity), status: editForm.status }
+    let updateBody: any = { title: editForm.title, capacity: parseInt(editForm.capacity), status: editForm.status, recurrence_days: editForm.recurrence_days }
     if (editForm.date && editForm.start_time && editForm.end_time) {
       const [sh, sm] = editForm.start_time.split(':').map(Number)
       const [eh, em] = editForm.end_time.split(':').map(Number)
@@ -101,15 +102,24 @@ export default function OrgSessionsPage() {
       end_time = new Date(endDt.getTime() - QATAR_OFFSET).toISOString()
     } else {
       if (!form.start_time || !form.end_time) { setMessage('Time is required'); setSaving(false); return }
-      // Use today as base for recurring
-      const today = new Date()
+      // Find next occurrence of first selected day
       const [sh, sm] = form.start_time.split(':').map(Number)
       const [eh, em] = form.end_time.split(':').map(Number)
-      today.setHours(sh, sm, 0, 0)
-      const endToday = new Date(today)
-      endToday.setHours(eh, em, 0, 0)
-      start_time = new Date(today.getTime() - QATAR_OFFSET).toISOString()
-      end_time = new Date(endToday.getTime() - QATAR_OFFSET).toISOString()
+      const today = new Date()
+      const dayOrder = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday']
+      const selectedDays = form.recurrence_type === 'weekly' && form.recurrence_days.length > 0
+        ? form.recurrence_days.map(d => dayOrder.indexOf(d)).sort((a,b) => a-b)
+        : [today.getDay()]
+      const todayDay = today.getDay()
+      let daysUntilNext = selectedDays.find(d => d >= todayDay)
+      if (daysUntilNext === undefined) daysUntilNext = selectedDays[0] + 7
+      const nextDate = new Date(today)
+      nextDate.setDate(today.getDate() + (daysUntilNext - todayDay))
+      nextDate.setHours(sh, sm, 0, 0)
+      const endDate = new Date(nextDate)
+      endDate.setHours(eh, em, 0, 0)
+      start_time = new Date(nextDate.getTime() - QATAR_OFFSET).toISOString()
+      end_time = new Date(endDate.getTime() - QATAR_OFFSET).toISOString()
     }
 
     const res = await fetch('/api/calendar-sessions', {
@@ -352,6 +362,25 @@ export default function OrgSessionsPage() {
                           className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 bg-white" type="time" />
                       </div>
                     </div>
+                    {editSession?.is_recurring && (
+                      <div className="mb-3">
+                        <label className="block text-xs font-semibold text-gray-500 mb-2">DAYS</label>
+                        <div className="flex gap-2 flex-wrap">
+                          {DAY_NAMES.map(day => (
+                            <button key={day.key} type="button"
+                              onClick={() => setEditForm(prev => ({
+                                ...prev,
+                                recurrence_days: prev.recurrence_days.includes(day.key)
+                                  ? prev.recurrence_days.filter(d => d !== day.key)
+                                  : [...prev.recurrence_days, day.key]
+                              }))}
+                              className={`px-3 py-1 rounded-lg text-xs font-medium transition ${editForm.recurrence_days.includes(day.key) ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                              {day.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <div className="flex gap-2">
                       <button onClick={saveEdit} disabled={editSaving}
                         className="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-700 disabled:opacity-50">
