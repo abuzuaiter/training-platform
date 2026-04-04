@@ -17,6 +17,8 @@ export default function OrgSessionsPage() {
   const id = params.id as string
   const [templates, setTemplates] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [calSessions, setCalSessions] = useState<any[]>([])
+  const [activeTab, setActiveTab] = useState<'templates' | 'sessions'>('templates')
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
@@ -119,7 +121,20 @@ export default function OrgSessionsPage() {
         </button>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 py-8">
+      {/* Tabs */}
+      <div className="max-w-4xl mx-auto px-6 pt-6">
+        <div className="flex gap-2 mb-6">
+          <button onClick={() => setActiveTab('templates')}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${activeTab === 'templates' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+            📋 Templates
+          </button>
+          <button onClick={() => setActiveTab('sessions')}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${activeTab === 'sessions' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+            📅 Sessions ({calSessions.length})
+          </button>
+        </div>
+      </div>
+      <div className="max-w-4xl mx-auto px-6 pb-8">
         {message && (
           <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-medium ${message.includes('!') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
             {message}
@@ -188,15 +203,15 @@ export default function OrgSessionsPage() {
           </div>
         )}
 
-        {loading ? (
+        {activeTab === 'templates' && loading ? (
           <div className="text-center py-12 text-gray-400">Loading...</div>
-        ) : templates.length === 0 ? (
+) : activeTab === 'templates' && templates.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-5xl mb-4">🎯</div>
             <p className="text-gray-500 font-medium">No sessions yet</p>
             <p className="text-gray-400 text-sm mt-1">Create your first session template</p>
           </div>
-        ) : (
+) : activeTab === 'templates' ? (
           <div className="grid gap-3">
             {templates.map(t => (
               <div key={t.id} className={`bg-white rounded-2xl border border-gray-200 overflow-hidden ${!t.is_active ? 'opacity-60' : ''}`}>
@@ -290,6 +305,50 @@ export default function OrgSessionsPage() {
                 )}
               </div>
             ))}
+          </div>
+        ) : null}
+
+        {/* Sessions Tab */}
+        {activeTab === 'sessions' && (
+          <div className="grid gap-3">
+            {calSessions.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="text-5xl mb-4">📅</div>
+                <p className="text-gray-500 font-medium">No sessions yet</p>
+                <p className="text-gray-400 text-sm mt-1">Schedule sessions from the Enrollments page</p>
+              </div>
+            ) : calSessions.map(sess => {
+              const QATAR_OFFSET = 3 * 60 * 60 * 1000
+              const sessDate = new Date(new Date(sess.start_time).getTime() + QATAR_OFFSET)
+              return (
+                <div key={sess.id} className="bg-white rounded-2xl border border-gray-200 p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-gray-900 text-sm">{sess.title}</p>
+                      <p className="text-xs text-gray-400">
+                        {sessDate.toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })} — {sessDate.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      <div className="flex gap-2 mt-1">
+                        <span className="text-xs text-gray-400">👥 {sess.booked_count}/{sess.capacity}</span>
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${sess.status === 'scheduled' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'}`}>{sess.status}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <select
+                        defaultValue={sess.trainer_id || ''}
+                        onChange={e => assignTrainer(sess.id, e.target.value)}
+                        className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:border-blue-400 min-w-32">
+                        <option value="">No trainer</option>
+                        {members.map(m => (
+                          <option key={m.id} value={m.user_id}>{m.users?.full_name || m.users?.email}</option>
+                        ))}
+                      </select>
+                      {savingTrainer === sess.id && <span className="text-xs text-blue-400">Saving...</span>}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
