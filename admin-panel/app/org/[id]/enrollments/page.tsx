@@ -135,61 +135,27 @@ export default function OrgEnrollmentsPage() {
   }
 
   async function confirmBooking() {
-    if (!selectedEnrollment) return
-    const pkg = packages.find(p => p.id === selectedEnrollment.package_id)
+    if (!selectedEnrollment || selectedSessions.length === 0) return
     setBooking(true)
-
-    if (pkg?.type === 'single') {
-      // Single session
-      const [sh, sm] = singleStart.split(':').map(Number)
-      const [eh, em] = singleEnd.split(':').map(Number)
-      const startDt = new Date(singleDate)
-      startDt.setHours(sh, sm, 0, 0)
-      const endDt = new Date(singleDate)
-      endDt.setHours(eh, em, 0, 0)
-      const utcStart = new Date(startDt.getTime() - 3 * 60 * 60 * 1000)
-      const utcEnd = new Date(endDt.getTime() - 3 * 60 * 60 * 1000)
-
-      // Create session then book
-      const sessRes = await fetch('/api/calendar-sessions', {
+    let success = 0
+    for (const sessionId of selectedSessions) {
+      const res = await fetch('/api/calendar-bookings', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ organization_id: id, title: selectedEnrollment.customers?.full_name, start_time: utcStart.toISOString(), end_time: utcEnd.toISOString(), capacity: 1 })
+        body: JSON.stringify({
+          session_id: sessionId,
+          customer_id: selectedEnrollment.customer_id,
+          organization_id: id,
+          enrollment_id: selectedEnrollment.id
+        })
       })
-      if (sessRes.ok) {
-        const sess = await sessRes.json()
-        await fetch('/api/calendar-bookings', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_id: sess.id, customer_id: selectedEnrollment.customer_id, organization_id: id, enrollment_id: selectedEnrollment.id })
-        })
-      }
-      setMessage('Session booked!')
-    } else {
-      // Multi sessions
-      const sessions = generateSessions()
-      let success = 0
-      for (const sess of sessions) {
-        const sessRes = await fetch('/api/calendar-sessions', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ organization_id: id, title: sess.title, start_time: sess.start_time, end_time: sess.end_time, capacity: 1 })
-        })
-        if (sessRes.ok) {
-          const newSess = await sessRes.json()
-          await fetch('/api/calendar-bookings', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ session_id: newSess.id, customer_id: selectedEnrollment.customer_id, organization_id: id, enrollment_id: selectedEnrollment.id })
-          })
-          success++
-        }
-      }
-      setMessage(`${success} sessions created and booked!`)
+      if (res.ok) success++
     }
-
+    setMessage(`${success} sessions assigned!`)
     setBooking(false)
     setBookingMode(false)
     setSelectedEnrollment(null)
-    setSchedule(initSchedule())
-    setStartDate('')
-    setTimeout(() => setMessage(''), 4000)
+    setSelectedSessions([])
+    setTimeout(() => setMessage(''), 3000)
     loadAll()
   }
 
@@ -320,7 +286,7 @@ export default function OrgEnrollmentsPage() {
                       <div className="flex gap-2">
                         <button onClick={() => { setSelectedEnrollment({...enr, customer_id: enr.customer_id || enr.customers?.id}); setBookingMode(true); setSchedule(initSchedule()) }}
                           className="text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 font-semibold hover:bg-blue-100 transition">
-                          📅 Schedule
+                          📅 Assign Sessions
                         </button>
                         <button onClick={() => handleCancel(enr.id)}
                           className="text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-600 font-semibold hover:bg-red-100 transition">
@@ -350,91 +316,40 @@ export default function OrgEnrollmentsPage() {
                 <button onClick={() => setBookingMode(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
               </div>
 
-              <div className="flex-1 overflow-y-auto space-y-4 mb-4">
-                {selectedPkg?.type === 'single' ? (
-                  // Single session form
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1">DATE *</label>
-                      <input value={singleDate} onChange={e => setSingleDate(e.target.value)}
-                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" type="date" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-500 mb-1">START TIME</label>
-                        <input value={singleStart} onChange={e => setSingleStart(e.target.value)}
-                          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" type="time" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-500 mb-1">END TIME</label>
-                        <input value={singleEnd} onChange={e => setSingleEnd(e.target.value)}
-                          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" type="time" />
-                      </div>
-                    </div>
+              <div className="flex-1 overflow-y-auto space-y-2 mb-4">
+                {availableSessions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-400 text-sm">No upcoming sessions available</p>
+                    <p className="text-gray-300 text-xs mt-1">Create sessions first from the Sessions page</p>
                   </div>
-                ) : (
-                  // Multi session schedule
-                  <>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1">START DATE (optional)</label>
-                      <input value={startDate} onChange={e => setStartDate(e.target.value)}
-                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
-                        type="date" placeholder="Defaults to enrollment date" />
-                    </div>
-
-                    <div className="space-y-3">
-                      {DAY_NAMES.map(day => (
-                        <div key={day.key} className={`border rounded-xl overflow-hidden transition ${schedule[day.key].enabled ? 'border-blue-200' : 'border-gray-100'}`}>
-                          <div className="flex items-center gap-3 px-4 py-3 cursor-pointer" onClick={() => toggleDay(day.key)}>
-                            <input type="checkbox" checked={schedule[day.key].enabled} onChange={() => toggleDay(day.key)}
-                              className="w-4 h-4 accent-blue-600" onClick={e => e.stopPropagation()} />
-                            <span className={`text-sm font-medium ${schedule[day.key].enabled ? 'text-blue-700' : 'text-gray-500'}`}>{day.label}</span>
-                          </div>
-
-                          {schedule[day.key].enabled && (
-                            <div className="px-4 pb-3 space-y-2 bg-blue-50">
-                              {schedule[day.key].slots.map((slot, idx) => (
-                                <div key={idx} className="flex items-center gap-2">
-                                  <input value={slot.start} onChange={e => updateSlot(day.key, idx, 'start', e.target.value)}
-                                    className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:border-blue-400 w-28" type="time" />
-                                  <span className="text-xs text-gray-400">→</span>
-                                  <input value={slot.end} onChange={e => updateSlot(day.key, idx, 'end', e.target.value)}
-                                    className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:border-blue-400 w-28" type="time" />
-                                  {schedule[day.key].slots.length > 1 && (
-                                    <button onClick={() => removeSlot(day.key, idx)} className="text-red-400 hover:text-red-600 text-xs font-bold">✕</button>
-                                  )}
-                                  {idx === schedule[day.key].slots.length - 1 && (
-                                    <button onClick={() => addSlot(day.key)} className="text-blue-500 hover:text-blue-700 text-xs font-semibold">+ Add</button>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-
-                    {previewSessions.length > 0 && (
-                      <div className="bg-gray-50 rounded-xl p-3">
-                        <p className="text-xs font-semibold text-gray-500 mb-1">PREVIEW — {previewSessions.length} sessions will be created</p>
-                        <div className="max-h-24 overflow-y-auto space-y-0.5">
-                          {previewSessions.slice(0, 5).map((s, i) => (
-                            <p key={i} className="text-xs text-gray-400">
-                              {new Date(new Date(s.start_time).getTime() + 3*60*60*1000).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })} — {new Date(new Date(s.start_time).getTime() + 3*60*60*1000).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' })}
-                            </p>
-                          ))}
-                          {previewSessions.length > 5 && <p className="text-xs text-gray-300">+{previewSessions.length - 5} more...</p>}
-                        </div>
+                ) : availableSessions.map(sess => {
+                  const isSelected = selectedSessions.includes(sess.id)
+                  const isFull = sess.booked_count >= sess.capacity
+                  const sessDate = new Date(new Date(sess.start_time).getTime() + 3*60*60*1000)
+                  return (
+                    <label key={sess.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition ${isSelected ? 'border-blue-300 bg-blue-50' : 'border-gray-100 hover:border-gray-200'} ${isFull ? 'opacity-40 cursor-not-allowed' : ''}`}>
+                      <input type="checkbox" checked={isSelected} disabled={isFull}
+                        onChange={e => setSelectedSessions(e.target.checked ? [...selectedSessions, sess.id] : selectedSessions.filter(s => s !== sess.id))}
+                        className="w-4 h-4 accent-blue-600" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">{sess.title}</p>
+                        <p className="text-xs text-gray-400">
+                          {sessDate.toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })} — {sessDate.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
                       </div>
-                    )}
-                  </>
-                )}
+                      <div className="text-right">
+                        <p className="text-xs text-gray-400">{sess.booked_count}/{sess.capacity}</p>
+                        {isFull && <p className="text-xs text-red-400">Full</p>}
+                      </div>
+                    </label>
+                  )
+                })}
               </div>
 
               <div className="flex gap-3 border-t border-gray-100 pt-4">
-                <button onClick={confirmBooking} disabled={booking || (selectedPkg?.type !== 'single' && previewSessions.length === 0) || (selectedPkg?.type === 'single' && !singleDate)}
+                <button onClick={confirmBooking} disabled={booking || selectedSessions.length === 0}
                   className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50">
-                  {booking ? 'Creating...' : selectedPkg?.type === 'single' ? 'Book Session' : `Create ${previewSessions.length} Sessions`}
+                  {booking ? 'Assigning...' : `Assign ${selectedSessions.length} Session${selectedSessions.length !== 1 ? 's' : ''}`}
                 </button>
                 <button onClick={() => setBookingMode(false)}
                   className="border border-gray-200 text-gray-600 px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-50">
