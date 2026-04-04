@@ -12,7 +12,9 @@ export default function OrgTeamPage() {
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [editMember, setEditMember] = useState<any>(null)
   const [form, setForm] = useState({ email: '', role: 'coach' })
+  const [editForm, setEditForm] = useState({ first_name: '', last_name: '', mobile: '', role: '' })
   const [adding, setAdding] = useState(false)
 
   useEffect(() => { if (id) load() }, [id])
@@ -31,14 +33,11 @@ export default function OrgTeamPage() {
   async function handleAdd() {
     if (!form.email) { setMessage('Email is required'); return }
     setAdding(true)
-
-    // Try to find existing user
     const userRes = await fetch(`/api/users?email=${form.email}`)
     const users = userRes.ok ? await userRes.json() : []
     const user = users.find((u: any) => u.email === form.email)
 
     if (user) {
-      // Add directly
       const res = await fetch(`/api/organizations/${id}/members`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: user.id, role: form.role, status: 'active' })
@@ -46,7 +45,6 @@ export default function OrgTeamPage() {
       if (res.ok) { setMessage('Member added!') }
       else { const d = await res.json(); setMessage(d.error || 'Error') }
     } else {
-      // Send invitation
       const res = await fetch('/api/invitations', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: form.email, role: form.role, organization_id: id })
@@ -54,7 +52,6 @@ export default function OrgTeamPage() {
       if (res.ok) { setMessage('Invitation sent!') }
       else { const d = await res.json(); setMessage(d.error || 'Error') }
     }
-
     setAdding(false)
     setShowForm(false)
     setForm({ email: '', role: 'coach' })
@@ -62,13 +59,28 @@ export default function OrgTeamPage() {
     load()
   }
 
-  async function updateRole(memberId: string, role: string) {
-    setSaving(memberId)
+  async function handleEdit() {
+    if (!editMember) return
+    setSaving(editMember.id)
+    // Update user info
+    await fetch(`/api/users/${editMember.users?.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        first_name: editForm.first_name,
+        last_name: editForm.last_name,
+        mobile: editForm.mobile,
+        full_name: `${editForm.first_name} ${editForm.last_name}`.trim()
+      })
+    })
+    // Update role
     await fetch(`/api/organizations/${id}/members`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ member_id: memberId, role })
+      body: JSON.stringify({ member_id: editMember.id, role: editForm.role })
     })
     setSaving(null)
+    setEditMember(null)
+    setMessage('Member updated!')
+    setTimeout(() => setMessage(''), 3000)
     load()
   }
 
@@ -89,7 +101,6 @@ export default function OrgTeamPage() {
     })
     setMessage('Invitation sent!')
     setTimeout(() => setMessage(''), 3000)
-    load()
   }
 
   const roleColors: Record<string, string> = {
@@ -104,12 +115,13 @@ export default function OrgTeamPage() {
     other: 'bg-gray-50 text-gray-500',
   }
 
+  const roles = ['admin','coach','trainer','doctor','therapist','receptionist','trainee','parent','other']
+
   const filtered = members.filter(m =>
     m.users?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
     m.users?.email?.toLowerCase().includes(search.toLowerCase())
   )
 
-  // Get pending invitations not yet accepted
   const pendingInvites = invitations.filter(i => i.status === 'pending')
 
   return (
@@ -134,8 +146,8 @@ export default function OrgTeamPage() {
 
         {showForm && (
           <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
-            <h2 className="text-base font-bold text-gray-900 mb-3">Add Team Member</h2>
-            <p className="text-xs text-gray-400 mb-3">If the email is registered → added directly. If not → invitation sent.</p>
+            <h2 className="text-base font-bold text-gray-900 mb-1">Add Team Member</h2>
+            <p className="text-xs text-gray-400 mb-3">If registered → added directly. If not → invitation sent.</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="md:col-span-2">
                 <label className="block text-xs font-semibold text-gray-500 mb-1">EMAIL *</label>
@@ -147,15 +159,7 @@ export default function OrgTeamPage() {
                 <label className="block text-xs font-semibold text-gray-500 mb-1">ROLE</label>
                 <select value={form.role} onChange={e => setForm({...form, role: e.target.value})}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none">
-                  <option value="admin">Admin</option>
-                  <option value="coach">Coach</option>
-                  <option value="trainer">Trainer</option>
-                  <option value="doctor">Doctor</option>
-                  <option value="therapist">Therapist</option>
-                  <option value="receptionist">Receptionist</option>
-                  <option value="trainee">Trainee</option>
-                  <option value="parent">Parent</option>
-                  <option value="other">Other</option>
+                  {roles.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
                 </select>
               </div>
             </div>
@@ -181,54 +185,101 @@ export default function OrgTeamPage() {
         ) : (
           <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
 
-            {/* Active Members */}
             {filtered.length > 0 && (
               <>
                 <div className="px-6 py-2 bg-gray-50 border-b border-gray-100">
                   <p className="text-xs font-semibold text-gray-500">MEMBERS</p>
                 </div>
                 {filtered.map(m => (
-                  <div key={m.id} className="flex items-center justify-between px-6 py-3 border-b border-gray-50 hover:bg-gray-50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-semibold text-sm">
-                        {(m.users?.full_name?.charAt(0) || '?').toUpperCase()}
+                  <div key={m.id}>
+                    <div className="flex items-center justify-between px-6 py-3 border-b border-gray-50 hover:bg-gray-50">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-semibold text-sm">
+                          {(m.users?.first_name?.charAt(0) || m.users?.full_name?.charAt(0) || '?').toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {m.users?.first_name && m.users?.last_name
+                              ? `${m.users.first_name} ${m.users.last_name}`
+                              : m.users?.full_name || 'Unknown'}
+                          </p>
+                          <p className="text-xs text-gray-400">{m.users?.email} {m.users?.mobile && `· ${m.users.mobile}`}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{m.users?.full_name || m.users?.email}</p>
-                        <p className="text-xs text-gray-400">{m.users?.email}</p>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleColors[m.role] || 'bg-gray-50 text-gray-600'}`}>
+                          {m.role}
+                        </span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${m.status === 'active' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
+                          {m.status}
+                        </span>
+                        <button onClick={() => {
+                          setEditMember(m)
+                          setEditForm({
+                            first_name: m.users?.first_name || '',
+                            last_name: m.users?.last_name || '',
+                            mobile: m.users?.mobile || '',
+                            role: m.role
+                          })
+                        }}
+                          className="text-xs px-3 py-1 rounded-lg bg-blue-50 text-blue-600 font-semibold hover:bg-blue-100 transition">
+                          Edit
+                        </button>
+                        <button onClick={() => toggleStatus(m)} disabled={saving === m.id}
+                          className={`text-xs px-3 py-1 rounded-lg font-semibold transition ${m.status === 'active' ? 'bg-red-50 text-red-500 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
+                          {saving === m.id ? '...' : m.status === 'active' ? 'Deactivate' : 'Activate'}
+                        </button>
+                        <button onClick={() => sendInvite(m.users?.email, m.role)}
+                          className="text-xs px-3 py-1 rounded-lg bg-gray-50 text-gray-500 font-semibold hover:bg-gray-100 transition">
+                          Resend
+                        </button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <select value={m.role} onChange={e => updateRole(m.id, e.target.value)} disabled={saving === m.id}
-                        className={`text-xs px-2 py-1 rounded-lg border-0 font-medium focus:outline-none cursor-pointer ${roleColors[m.role] || 'bg-gray-50 text-gray-600'}`}>
-                        <option value="admin">Admin</option>
-                        <option value="coach">Coach</option>
-                        <option value="trainer">Trainer</option>
-                        <option value="doctor">Doctor</option>
-                        <option value="therapist">Therapist</option>
-                        <option value="receptionist">Receptionist</option>
-                        <option value="trainee">Trainee</option>
-                        <option value="parent">Parent</option>
-                        <option value="other">Other</option>
-                      </select>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${m.status === 'active' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
-                        {m.status}
-                      </span>
-                      <button onClick={() => toggleStatus(m)} disabled={saving === m.id}
-                        className={`text-xs px-3 py-1 rounded-lg font-semibold transition ${m.status === 'active' ? 'bg-red-50 text-red-500 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
-                        {saving === m.id ? '...' : m.status === 'active' ? 'Deactivate' : 'Activate'}
-                      </button>
-                      <button onClick={() => sendInvite(m.users?.email, m.role)}
-                        className="text-xs px-3 py-1 rounded-lg bg-blue-50 text-blue-600 font-semibold hover:bg-blue-100 transition">
-                        Resend Invite
-                      </button>
-                    </div>
+
+                    {editMember?.id === m.id && (
+                      <div className="px-6 py-4 bg-blue-50 border-b border-blue-100">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-500 mb-1">FIRST NAME</label>
+                            <input value={editForm.first_name} onChange={e => setEditForm({...editForm, first_name: e.target.value})}
+                              className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 bg-white" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-500 mb-1">LAST NAME</label>
+                            <input value={editForm.last_name} onChange={e => setEditForm({...editForm, last_name: e.target.value})}
+                              className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 bg-white" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-500 mb-1">MOBILE</label>
+                            <input value={editForm.mobile} onChange={e => setEditForm({...editForm, mobile: e.target.value})}
+                              className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 bg-white"
+                              placeholder="+974..." />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-500 mb-1">ROLE</label>
+                            <select value={editForm.role} onChange={e => setEditForm({...editForm, role: e.target.value})}
+                              className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none">
+                              {roles.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={handleEdit} disabled={saving === m.id}
+                            className="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-700 disabled:opacity-50">
+                            {saving === m.id ? 'Saving...' : 'Save'}
+                          </button>
+                          <button onClick={() => setEditMember(null)}
+                            className="border border-gray-200 text-gray-600 px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-100">
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </>
             )}
 
-            {/* Pending Invitations */}
             {pendingInvites.length > 0 && (
               <>
                 <div className="px-6 py-2 bg-amber-50 border-b border-amber-100">
@@ -237,7 +288,7 @@ export default function OrgTeamPage() {
                 {pendingInvites.map(inv => (
                   <div key={inv.id} className="flex items-center justify-between px-6 py-3 border-b border-gray-50">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 font-semibold text-sm">
+                      <div className="w-9 h-9 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 font-semibold text-sm">
                         {inv.email?.charAt(0).toUpperCase()}
                       </div>
                       <div>
