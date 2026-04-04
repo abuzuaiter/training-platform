@@ -59,11 +59,12 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   // Generate recurring sessions
-  if (is_recurring && recurrence_type && recurrence_end_date) {
+  const effectiveEndDate = recurrence_end_date || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  if (is_recurring && recurrence_type) {
     const sessions = []
     const start = new Date(start_time)
     const end = new Date(end_time)
-    const endDate = new Date(recurrence_end_date)
+    const endDate = new Date(effectiveEndDate)
     const duration = end.getTime() - start.getTime()
     let current = new Date(start)
 

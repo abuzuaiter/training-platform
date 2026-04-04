@@ -26,7 +26,7 @@ export default function OrgSessionsPage() {
   const [form, setForm] = useState({
     title: '', capacity: '10', is_recurring: false,
     recurrence_type: 'weekly', recurrence_days: [] as string[],
-    recurrence_end_date: '', start_time: '', end_time: '',
+    start_time: '', end_time: '',
     single_date: '', single_start: '07:00', single_end: '08:00'
   })
 
@@ -132,7 +132,7 @@ export default function OrgSessionsPage() {
         is_recurring: form.is_recurring,
         recurrence_type: form.is_recurring ? form.recurrence_type : null,
         recurrence_days: form.is_recurring && form.recurrence_type === 'weekly' ? form.recurrence_days : null,
-        recurrence_end_date: form.is_recurring ? form.recurrence_end_date : null,
+        recurrence_end_date: null,
       })
     })
 
@@ -250,11 +250,7 @@ export default function OrgSessionsPage() {
                       <option value="monthly">شهري — Monthly</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">END DATE</label>
-                    <input value={form.recurrence_end_date} onChange={e => setForm({...form, recurrence_end_date: e.target.value})}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" type="date" />
-                  </div>
+
                   {form.recurrence_type === 'weekly' && (
                     <div className="md:col-span-2">
                       <label className="block text-xs font-semibold text-gray-500 mb-2">DAYS</label>
