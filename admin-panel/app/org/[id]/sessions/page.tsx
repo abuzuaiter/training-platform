@@ -15,14 +15,13 @@ const DAY_NAMES = [
 export default function OrgSessionsPage() {
   const params = useParams()
   const id = params.id as string
-  const [templates, setTemplates] = useState<any[]>([])
+  const [sessions, setSessions] = useState<any[]>([])
+  const [members, setMembers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [calSessions, setCalSessions] = useState<any[]>([])
-  const [activeTab, setActiveTab] = useState<'templates' | 'sessions'>('templates')
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
-  const [editTemplate, setEditTemplate] = useState<any>(null)
+  const [editSession, setEditSession] = useState<any>(null)
   const [form, setForm] = useState({
     title: '', capacity: '10',
     recurrence_type: 'weekly',
@@ -30,7 +29,7 @@ export default function OrgSessionsPage() {
     start_time: '07:00', end_time: '08:00',
   })
   const [editForm, setEditForm] = useState({
-    title: '', capacity: '', recurrence_type: '',
+    title: '', capacity: '',
     recurrence_days: [] as string[],
     start_time: '', end_time: '', is_active: true
   })
@@ -39,8 +38,12 @@ export default function OrgSessionsPage() {
 
   async function load() {
     setLoading(true)
-    const res = await fetch(`/api/session-templates?org_id=${id}`)
-    setTemplates(res.ok ? await res.json() : [])
+    const [sessRes, membRes] = await Promise.all([
+      fetch(`/api/session-templates?org_id=${id}`),
+      fetch(`/api/organizations/${id}/members`)
+    ])
+    setSessions(sessRes.ok ? await sessRes.json() : [])
+    setMembers(membRes.ok ? await membRes.json() : [])
     setLoading(false)
   }
 
@@ -54,34 +57,36 @@ export default function OrgSessionsPage() {
     })
     const data = await res.json()
     if (res.ok) {
-      setMessage('Session template created!')
+      setMessage('Session created!')
       setShowForm(false)
       setForm({ title: '', capacity: '10', recurrence_type: 'weekly', recurrence_days: [], start_time: '07:00', end_time: '08:00' })
       load()
     } else { setMessage(data.error || 'Error') }
     setSaving(false)
+    setTimeout(() => setMessage(''), 3000)
   }
 
   async function saveEdit() {
-    if (!editTemplate) return
+    if (!editSession) return
     setSaving(true)
-    const res = await fetch(`/api/session-templates/${editTemplate.id}`, {
+    const res = await fetch(`/api/session-templates/${editSession.id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...editForm, capacity: parseInt(editForm.capacity) })
     })
-    if (res.ok) { setMessage('Updated!'); setEditTemplate(null); load() }
+    if (res.ok) { setMessage('Updated!'); setEditSession(null); load() }
     setSaving(false)
+    setTimeout(() => setMessage(''), 3000)
   }
 
-  async function handleDelete(templateId: string) {
-    await fetch(`/api/session-templates/${templateId}`, { method: 'DELETE' })
+  async function handleDelete(sessionId: string) {
+    await fetch(`/api/session-templates/${sessionId}`, { method: 'DELETE' })
     load()
   }
 
-  async function toggleActive(t: any) {
-    await fetch(`/api/session-templates/${t.id}`, {
+  async function toggleActive(s: any) {
+    await fetch(`/api/session-templates/${s.id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ is_active: !t.is_active })
+      body: JSON.stringify({ is_active: !s.is_active })
     })
     load()
   }
@@ -113,7 +118,7 @@ export default function OrgSessionsPage() {
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-gray-900">Sessions</h1>
-          <p className="text-xs text-gray-400">Define your recurring session templates</p>
+          <p className="text-xs text-gray-400">Define your weekly schedule</p>
         </div>
         <button onClick={() => setShowForm(!showForm)}
           className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
@@ -121,20 +126,7 @@ export default function OrgSessionsPage() {
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="max-w-4xl mx-auto px-6 pt-6">
-        <div className="flex gap-2 mb-6">
-          <button onClick={() => setActiveTab('templates')}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${activeTab === 'templates' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-            📋 Templates
-          </button>
-          <button onClick={() => setActiveTab('sessions')}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${activeTab === 'sessions' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-            📅 Sessions ({calSessions.length})
-          </button>
-        </div>
-      </div>
-      <div className="max-w-4xl mx-auto px-6 pb-8">
+      <div className="max-w-4xl mx-auto px-6 py-8">
         {message && (
           <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-medium ${message.includes('!') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
             {message}
@@ -146,7 +138,7 @@ export default function OrgSessionsPage() {
             <h2 className="text-lg font-bold text-gray-900 mb-4">New Session</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
-                <label className="block text-xs font-semibold text-gray-500 mb-1">TITLE *</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">SESSION NAME *</label>
                 <input value={form.title} onChange={e => setForm({...form, title: e.target.value})}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
                   placeholder="e.g. سباحة مستوى 1 — مجموعة أ" />
@@ -161,9 +153,9 @@ export default function OrgSessionsPage() {
                 <label className="block text-xs font-semibold text-gray-500 mb-1">TYPE</label>
                 <select value={form.recurrence_type} onChange={e => setForm({...form, recurrence_type: e.target.value, recurrence_days: []})}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none">
-                  <option value="single">حصة واحدة — Single</option>
-                  <option value="weekly">أسبوعي — Weekly</option>
-                  <option value="daily">يومي — Daily</option>
+                  <option value="single">حصة واحدة</option>
+                  <option value="weekly">أسبوعي</option>
+                  <option value="daily">يومي</option>
                 </select>
               </div>
               <div>
@@ -203,62 +195,57 @@ export default function OrgSessionsPage() {
           </div>
         )}
 
-        {activeTab === 'templates' && loading ? (
+        {loading ? (
           <div className="text-center py-12 text-gray-400">Loading...</div>
-) : activeTab === 'templates' && templates.length === 0 ? (
+        ) : sessions.length === 0 ? (
           <div className="text-center py-16">
-            <div className="text-5xl mb-4">🎯</div>
+            <div className="text-5xl mb-4">📅</div>
             <p className="text-gray-500 font-medium">No sessions yet</p>
-            <p className="text-gray-400 text-sm mt-1">Create your first session template</p>
+            <p className="text-gray-400 text-sm mt-1">Create your weekly schedule</p>
           </div>
-) : activeTab === 'templates' ? (
+        ) : (
           <div className="grid gap-3">
-            {templates.map(t => (
-              <div key={t.id} className={`bg-white rounded-2xl border border-gray-200 overflow-hidden ${!t.is_active ? 'opacity-60' : ''}`}>
+            {sessions.map(s => (
+              <div key={s.id} className={`bg-white rounded-2xl border border-gray-200 overflow-hidden ${!s.is_active ? 'opacity-60' : ''}`}>
                 <div className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 text-lg">
-                      {t.recurrence_type === 'single' ? '📅' : '🔄'}
+                    <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-xl">
+                      {s.recurrence_type === 'single' ? '📅' : '🔄'}
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900 text-sm">{t.title}</p>
+                      <p className="font-semibold text-gray-900 text-sm">{s.title}</p>
                       <p className="text-xs text-gray-400">
-                        {t.start_time?.slice(0,5)} — {t.end_time?.slice(0,5)}
-                        {t.recurrence_type === 'weekly' && t.recurrence_days && (
-                          <span className="ml-2">• {getDayLabels(t.recurrence_days)}</span>
+                        {s.start_time?.slice(0,5)} — {s.end_time?.slice(0,5)}
+                        {s.recurrence_type === 'weekly' && s.recurrence_days?.length > 0 && (
+                          <span className="ml-2">• {getDayLabels(s.recurrence_days)}</span>
                         )}
-                        {t.recurrence_type === 'daily' && <span className="ml-2">• يومي</span>}
+                        {s.recurrence_type === 'daily' && <span className="ml-2">• يومي</span>}
+                        {s.recurrence_type === 'single' && <span className="ml-2">• حصة واحدة</span>}
                       </p>
-                      <div className="flex gap-2 mt-0.5">
-                        <span className="text-xs text-gray-400">👥 capacity: {t.capacity}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${t.recurrence_type === 'single' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'}`}>
-                          {t.recurrence_type === 'single' ? 'حصة واحدة' : t.recurrence_type === 'weekly' ? 'أسبوعي' : 'يومي'}
-                        </span>
-                        {!t.is_active && <span className="text-xs bg-red-50 text-red-500 px-1.5 py-0.5 rounded-full">Inactive</span>}
-                      </div>
+                      <p className="text-xs text-gray-400 mt-0.5">👥 Capacity: {s.capacity}</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => { setEditTemplate(t); setEditForm({ title: t.title, capacity: String(t.capacity), recurrence_type: t.recurrence_type, recurrence_days: t.recurrence_days || [], start_time: t.start_time?.slice(0,5), end_time: t.end_time?.slice(0,5), is_active: t.is_active }) }}
+                    <button onClick={() => { setEditSession(s); setEditForm({ title: s.title, capacity: String(s.capacity), recurrence_days: s.recurrence_days || [], start_time: s.start_time?.slice(0,5), end_time: s.end_time?.slice(0,5), is_active: s.is_active }) }}
                       className="text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 font-semibold hover:bg-blue-100 transition">
                       ✏️ Edit
                     </button>
-                    <button onClick={() => toggleActive(t)}
-                      className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${t.is_active ? 'bg-amber-50 text-amber-600 hover:bg-amber-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
-                      {t.is_active ? 'إيقاف' : 'تفعيل'}
+                    <button onClick={() => toggleActive(s)}
+                      className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${s.is_active ? 'bg-amber-50 text-amber-600 hover:bg-amber-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
+                      {s.is_active ? 'إيقاف' : 'تفعيل'}
                     </button>
-                    <button onClick={() => handleDelete(t.id)}
+                    <button onClick={() => handleDelete(s.id)}
                       className="text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-600 font-semibold hover:bg-red-100 transition">
                       🗑️
                     </button>
                   </div>
                 </div>
 
-                {editTemplate?.id === t.id && (
+                {editSession?.id === s.id && (
                   <div className="border-t border-gray-100 bg-gray-50 px-4 py-4">
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
                       <div className="md:col-span-3">
-                        <label className="block text-xs font-semibold text-gray-500 mb-1">TITLE</label>
+                        <label className="block text-xs font-semibold text-gray-500 mb-1">NAME</label>
                         <input value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})}
                           className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 bg-white" />
                       </div>
@@ -278,7 +265,7 @@ export default function OrgSessionsPage() {
                           className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 bg-white" type="time" />
                       </div>
                     </div>
-                    {editForm.recurrence_type === 'weekly' && (
+                    {s.recurrence_type === 'weekly' && (
                       <div className="mb-3">
                         <label className="block text-xs font-semibold text-gray-500 mb-2">DAYS</label>
                         <div className="flex gap-2 flex-wrap">
@@ -296,7 +283,7 @@ export default function OrgSessionsPage() {
                         className="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-700 disabled:opacity-50">
                         {saving ? 'Saving...' : 'Save'}
                       </button>
-                      <button onClick={() => setEditTemplate(null)}
+                      <button onClick={() => setEditSession(null)}
                         className="border border-gray-200 text-gray-600 px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-100">
                         Cancel
                       </button>
@@ -305,50 +292,6 @@ export default function OrgSessionsPage() {
                 )}
               </div>
             ))}
-          </div>
-        ) : null}
-
-        {/* Sessions Tab */}
-        {activeTab === 'sessions' && (
-          <div className="grid gap-3">
-            {calSessions.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="text-5xl mb-4">📅</div>
-                <p className="text-gray-500 font-medium">No sessions yet</p>
-                <p className="text-gray-400 text-sm mt-1">Schedule sessions from the Enrollments page</p>
-              </div>
-            ) : calSessions.map(sess => {
-              const QATAR_OFFSET = 3 * 60 * 60 * 1000
-              const sessDate = new Date(new Date(sess.start_time).getTime() + QATAR_OFFSET)
-              return (
-                <div key={sess.id} className="bg-white rounded-2xl border border-gray-200 p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-gray-900 text-sm">{sess.title}</p>
-                      <p className="text-xs text-gray-400">
-                        {sessDate.toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })} — {sessDate.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                      <div className="flex gap-2 mt-1">
-                        <span className="text-xs text-gray-400">👥 {sess.booked_count}/{sess.capacity}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${sess.status === 'scheduled' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'}`}>{sess.status}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <select
-                        defaultValue={sess.trainer_id || ''}
-                        onChange={e => assignTrainer(sess.id, e.target.value)}
-                        className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:border-blue-400 min-w-32">
-                        <option value="">No trainer</option>
-                        {members.map(m => (
-                          <option key={m.id} value={m.users?.id}>{m.users?.full_name || m.users?.email}</option>
-                        ))}
-                      </select>
-                      {savingTrainer === sess.id && <span className="text-xs text-blue-400">Saving...</span>}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
           </div>
         )}
       </div>
