@@ -45,7 +45,7 @@ export default function OrgCalendarPage() {
       fetch(`/api/activities?org_id=${id}`)
     ])
     const [sessData, custData, actData] = await Promise.all([sessRes.json(), custRes.json(), actRes.json()])
-    setSessions(sessData || [])
+    setSessions(Array.isArray(sessData) ? sessData : [])
     setCustomers(custData || [])
       setLoading(false)
   }

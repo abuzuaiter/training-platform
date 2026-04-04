@@ -340,7 +340,7 @@ export default function OrgSessionsPage() {
                         className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:border-blue-400 min-w-32">
                         <option value="">No trainer</option>
                         {members.map(m => (
-                          <option key={m.id} value={m.user_id}>{m.users?.full_name || m.users?.email}</option>
+                          <option key={m.id} value={m.users?.id}>{m.users?.full_name || m.users?.email}</option>
                         ))}
                       </select>
                       {savingTrainer === sess.id && <span className="text-xs text-blue-400">Saving...</span>}
