@@ -20,7 +20,6 @@ export default function OrgCalendarPage() {
   const id = params.id as string
   const [sessions, setSessions] = useState<any[]>([])
   const [customers, setCustomers] = useState<any[]>([])
-  const [activities, setActivities] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<'month' | 'week' | 'day'>('week')
   const [currentDate, setCurrentDate] = useState(new Date())
@@ -32,7 +31,7 @@ export default function OrgCalendarPage() {
   const [saving, setSaving] = useState(false)
   const [copied, setCopied] = useState(false)
   const [selectedCustomers, setSelectedCustomers] = useState<string[]>([])
-  const [form, setForm] = useState({ activity_id: '', title: '', description: '', start_time: '', end_time: '', capacity: '1' })
+  const [form, setForm] = useState({ title: '', description: '', start_time: '', end_time: '', capacity: '1' })
   const [bookForm, setBookForm] = useState({ customer_id: '' })
   const [recurring, setRecurring] = useState({ is_recurring: false, recurrence_type: 'weekly', recurrence_days: [] as string[], recurrence_end_date: '' })
 
@@ -48,8 +47,7 @@ export default function OrgCalendarPage() {
     const [sessData, custData, actData] = await Promise.all([sessRes.json(), custRes.json(), actRes.json()])
     setSessions(sessData || [])
     setCustomers(custData || [])
-    setActivities(actData || [])
-    setLoading(false)
+      setLoading(false)
   }
 
   async function handleCreateSession() {
@@ -169,13 +167,7 @@ export default function OrgCalendarPage() {
           <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
             <h2 className="text-lg font-bold text-gray-900 mb-4">New Session</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">ACTIVITY</label>
-                <select value={form.activity_id} onChange={e => setForm({...form, activity_id: e.target.value})} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none">
-                  <option value="">No activity</option>
-                  {activities.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                </select>
-              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1">CAPACITY</label>
                 <input value={form.capacity} onChange={e => setForm({...form, capacity: e.target.value})} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" type="number" min="1" />
