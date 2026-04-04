@@ -8,7 +8,7 @@ export default function OrgDashboard() {
   const router = useRouter()
 
   useEffect(() => {
-    if (id) router.replace(`/org/${id}/calendar`)
+    if (id) router.replace(`/org/${id}/dashboard`)
   }, [id])
 
   return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">Loading...</div>

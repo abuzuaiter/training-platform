@@ -23,14 +23,14 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
   }
 
   const navItems = [
-    { href: `/org/${id}`, label: 'Dashboard', icon: '🏠' },
+    { href: `/org/${id}/dashboard`, label: 'Dashboard', icon: '🏠' },
     { href: `/org/${id}/calendar`, label: 'Calendar', icon: '📅' },
     { href: `/org/${id}/customers`, label: 'Customers', icon: '🧑‍🤝‍🧑' },
-    { href: `/org/${id}/subscriptions`, label: 'Subscriptions', icon: '💳' },
     { href: `/org/${id}/members`, label: 'Members', icon: '👥' },
     { href: `/org/${id}/activities`, label: 'Activities', icon: '📋' },
     { href: `/org/${id}/packages`, label: 'Packages', icon: '📦' },
     { href: `/org/${id}/packages`, label: 'Packages', icon: '📦' },
+    { href: `/org/${id}/enrollments`, label: 'Enrollments', icon: '🎓' },
     { href: `/org/${id}/invitations`, label: 'Invitations', icon: '✉️' },
   ]
 
