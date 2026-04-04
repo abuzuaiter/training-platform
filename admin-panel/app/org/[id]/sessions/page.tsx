@@ -15,157 +15,95 @@ const DAY_NAMES = [
 export default function OrgSessionsPage() {
   const params = useParams()
   const id = params.id as string
-  const [sessions, setSessions] = useState<any[]>([])
+  const [templates, setTemplates] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
-  const [editSession, setEditSession] = useState<any>(null)
-  const [editForm, setEditForm] = useState({ title: '', capacity: '', status: '', date: '', start_time: '', end_time: '', recurrence_days: [] as string[] })
-  const [editSaving, setEditSaving] = useState(false)
+  const [editTemplate, setEditTemplate] = useState<any>(null)
   const [form, setForm] = useState({
-    title: '', capacity: '10', is_recurring: false,
-    recurrence_type: 'weekly', recurrence_days: [] as string[],
-    start_time: '', end_time: '',
-    single_date: '', single_start: '07:00', single_end: '08:00'
+    title: '', capacity: '10',
+    recurrence_type: 'weekly',
+    recurrence_days: [] as string[],
+    start_time: '07:00', end_time: '08:00',
+  })
+  const [editForm, setEditForm] = useState({
+    title: '', capacity: '', recurrence_type: '',
+    recurrence_days: [] as string[],
+    start_time: '', end_time: '', is_active: true
   })
 
   useEffect(() => { if (id) load() }, [id])
 
   async function load() {
     setLoading(true)
-    const res = await fetch(`/api/calendar-sessions?org_id=${id}`)
-    setSessions(res.ok ? await res.json() : [])
+    const res = await fetch(`/api/session-templates?org_id=${id}`)
+    setTemplates(res.ok ? await res.json() : [])
     setLoading(false)
   }
 
-  async function handleEdit(sess: any) {
-    setEditSession(sess)
-    const QATAR_OFFSET = 3 * 60 * 60 * 1000
-    const startQt = new Date(new Date(sess.start_time).getTime() + QATAR_OFFSET)
-    const endQt = new Date(new Date(sess.end_time).getTime() + QATAR_OFFSET)
-    const dateStr = startQt.toISOString().split('T')[0]
-    const startStr = startQt.toTimeString().slice(0, 5)
-    const endStr = endQt.toTimeString().slice(0, 5)
-    setEditForm({
-      title: sess.title,
-      capacity: String(sess.capacity),
-      status: sess.status,
-      date: dateStr,
-      start_time: startStr,
-      end_time: endStr,
-      recurrence_days: sess.recurrence_days || [],
-    })
-  }
-
-  async function saveEdit() {
-    if (!editSession) return
-    setEditSaving(true)
-    const QATAR_OFFSET = 3 * 60 * 60 * 1000
-    let updateBody: any = { title: editForm.title, capacity: parseInt(editForm.capacity), status: editForm.status, recurrence_days: editForm.recurrence_days }
-    if (editForm.date && editForm.start_time && editForm.end_time) {
-      const [sh, sm] = editForm.start_time.split(':').map(Number)
-      const [eh, em] = editForm.end_time.split(':').map(Number)
-      const startDt = new Date(editForm.date)
-      startDt.setHours(sh, sm, 0, 0)
-      const endDt = new Date(editForm.date)
-      endDt.setHours(eh, em, 0, 0)
-      updateBody.start_time = new Date(startDt.getTime() - QATAR_OFFSET).toISOString()
-      updateBody.end_time = new Date(endDt.getTime() - QATAR_OFFSET).toISOString()
-    }
-    const res = await fetch(`/api/calendar-sessions/${editSession.id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updateBody)
-    })
-    if (res.ok) { setMessage('Session updated!'); setEditSession(null); load() }
-    else { const d = await res.json(); setMessage(d.error || 'Error') }
-    setEditSaving(false)
-  }
-
   async function handleCreate() {
-    if (!form.title) { setMessage('Title is required'); return }
+    if (!form.title || !form.start_time || !form.end_time) { setMessage('Please fill required fields'); return }
+    if (form.recurrence_type === 'weekly' && form.recurrence_days.length === 0) { setMessage('Please select at least one day'); return }
     setSaving(true)
-
-    const QATAR_OFFSET = 3 * 60 * 60 * 1000
-
-    let start_time, end_time
-
-    if (!form.is_recurring) {
-      if (!form.single_date) { setMessage('Date is required'); setSaving(false); return }
-      const [sh, sm] = form.single_start.split(':').map(Number)
-      const [eh, em] = form.single_end.split(':').map(Number)
-      const startDt = new Date(form.single_date)
-      startDt.setHours(sh, sm, 0, 0)
-      const endDt = new Date(form.single_date)
-      endDt.setHours(eh, em, 0, 0)
-      start_time = new Date(startDt.getTime() - QATAR_OFFSET).toISOString()
-      end_time = new Date(endDt.getTime() - QATAR_OFFSET).toISOString()
-    } else {
-      if (!form.start_time || !form.end_time) { setMessage('Time is required'); setSaving(false); return }
-      // Find next occurrence of first selected day
-      const [sh, sm] = form.start_time.split(':').map(Number)
-      const [eh, em] = form.end_time.split(':').map(Number)
-      const today = new Date()
-      const dayOrder = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday']
-      const selectedDays = form.recurrence_type === 'weekly' && form.recurrence_days.length > 0
-        ? form.recurrence_days.map(d => dayOrder.indexOf(d)).sort((a,b) => a-b)
-        : [today.getDay()]
-      const todayDay = today.getDay()
-      let daysUntilNext = selectedDays.find(d => d >= todayDay)
-      if (daysUntilNext === undefined) daysUntilNext = selectedDays[0] + 7
-      const nextDate = new Date(today)
-      nextDate.setDate(today.getDate() + (daysUntilNext - todayDay))
-      nextDate.setHours(sh, sm, 0, 0)
-      const endDate = new Date(nextDate)
-      endDate.setHours(eh, em, 0, 0)
-      start_time = new Date(nextDate.getTime() - QATAR_OFFSET).toISOString()
-      end_time = new Date(endDate.getTime() - QATAR_OFFSET).toISOString()
-    }
-
-    const res = await fetch('/api/calendar-sessions', {
+    const res = await fetch('/api/session-templates', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        organization_id: id,
-        title: form.title,
-        capacity: parseInt(form.capacity),
-        start_time, end_time,
-        is_recurring: form.is_recurring,
-        recurrence_type: form.is_recurring ? form.recurrence_type : null,
-        recurrence_days: form.is_recurring && form.recurrence_type === 'weekly' ? form.recurrence_days : null,
-        recurrence_end_date: null,
-      })
+      body: JSON.stringify({ ...form, organization_id: id, capacity: parseInt(form.capacity) })
     })
-
+    const data = await res.json()
     if (res.ok) {
-      setMessage('Session created!')
+      setMessage('Session template created!')
       setShowForm(false)
-      setForm({ title: '', capacity: '10', is_recurring: false, recurrence_type: 'weekly', recurrence_days: [], recurrence_end_date: '', start_time: '', end_time: '', single_date: '', single_start: '07:00', single_end: '08:00' })
+      setForm({ title: '', capacity: '10', recurrence_type: 'weekly', recurrence_days: [], start_time: '07:00', end_time: '08:00' })
       load()
-    } else {
-      const d = await res.json()
-      setMessage(d.error || 'Error')
-    }
+    } else { setMessage(data.error || 'Error') }
     setSaving(false)
   }
 
-  async function handleDelete(sessionId: string) {
-    await fetch(`/api/calendar-sessions/${sessionId}`, { method: 'DELETE' })
+  async function saveEdit() {
+    if (!editTemplate) return
+    setSaving(true)
+    const res = await fetch(`/api/session-templates/${editTemplate.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...editForm, capacity: parseInt(editForm.capacity) })
+    })
+    if (res.ok) { setMessage('Updated!'); setEditTemplate(null); load() }
+    setSaving(false)
+  }
+
+  async function handleDelete(templateId: string) {
+    await fetch(`/api/session-templates/${templateId}`, { method: 'DELETE' })
     load()
   }
 
-  const QATAR_OFFSET = 3 * 60 * 60 * 1000
-  function formatDateTime(dateStr: string) {
-    const d = new Date(new Date(dateStr).getTime() + QATAR_OFFSET)
-    return d.toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' }) + ' — ' + d.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' })
+  async function toggleActive(t: any) {
+    await fetch(`/api/session-templates/${t.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_active: !t.is_active })
+    })
+    load()
   }
 
-  const toggleDay = (day: string) => {
-    setForm(prev => ({
-      ...prev,
-      recurrence_days: prev.recurrence_days.includes(day)
-        ? prev.recurrence_days.filter(d => d !== day)
-        : [...prev.recurrence_days, day]
-    }))
+  function toggleDay(day: string, isEdit = false) {
+    if (isEdit) {
+      setEditForm(prev => ({
+        ...prev,
+        recurrence_days: prev.recurrence_days.includes(day)
+          ? prev.recurrence_days.filter(d => d !== day)
+          : [...prev.recurrence_days, day]
+      }))
+    } else {
+      setForm(prev => ({
+        ...prev,
+        recurrence_days: prev.recurrence_days.includes(day)
+          ? prev.recurrence_days.filter(d => d !== day)
+          : [...prev.recurrence_days, day]
+      }))
+    }
+  }
+
+  function getDayLabels(days: string[]) {
+    return days?.map(d => DAY_NAMES.find(n => n.key === d)?.label).filter(Boolean).join('، ')
   }
 
   return (
@@ -173,7 +111,7 @@ export default function OrgSessionsPage() {
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-gray-900">Sessions</h1>
-          <p className="text-xs text-gray-400">Manage your fixed and recurring sessions</p>
+          <p className="text-xs text-gray-400">Define your recurring session templates</p>
         </div>
         <button onClick={() => setShowForm(!showForm)}
           className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
@@ -202,77 +140,45 @@ export default function OrgSessionsPage() {
                 <label className="block text-xs font-semibold text-gray-500 mb-1">CAPACITY</label>
                 <input value={form.capacity} onChange={e => setForm({...form, capacity: e.target.value})}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
-                  type="number" min="1" placeholder="10" />
+                  type="number" min="1" />
               </div>
-              <div className="flex items-center gap-3 mt-4">
-                <input type="checkbox" id="recurring" checked={form.is_recurring}
-                  onChange={e => setForm({...form, is_recurring: e.target.checked})}
-                  className="w-4 h-4 accent-blue-600" />
-                <label htmlFor="recurring" className="text-sm font-medium text-gray-700 cursor-pointer">Recurring Session</label>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">TYPE</label>
+                <select value={form.recurrence_type} onChange={e => setForm({...form, recurrence_type: e.target.value, recurrence_days: []})}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none">
+                  <option value="single">حصة واحدة — Single</option>
+                  <option value="weekly">أسبوعي — Weekly</option>
+                  <option value="daily">يومي — Daily</option>
+                </select>
               </div>
-
-              {!form.is_recurring ? (
-                <>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">DATE *</label>
-                    <input value={form.single_date} onChange={e => setForm({...form, single_date: e.target.value})}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" type="date" />
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">START TIME *</label>
+                <input value={form.start_time} onChange={e => setForm({...form, start_time: e.target.value})}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" type="time" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">END TIME *</label>
+                <input value={form.end_time} onChange={e => setForm({...form, end_time: e.target.value})}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" type="time" />
+              </div>
+              {form.recurrence_type === 'weekly' && (
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-gray-500 mb-2">DAYS *</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {DAY_NAMES.map(day => (
+                      <button key={day.key} type="button" onClick={() => toggleDay(day.key)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${form.recurrence_days.includes(day.key) ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                        {day.label}
+                      </button>
+                    ))}
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">START TIME</label>
-                    <input value={form.single_start} onChange={e => setForm({...form, single_start: e.target.value})}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" type="time" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">END TIME</label>
-                    <input value={form.single_end} onChange={e => setForm({...form, single_end: e.target.value})}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" type="time" />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">START TIME *</label>
-                    <input value={form.start_time} onChange={e => setForm({...form, start_time: e.target.value})}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" type="time" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">END TIME *</label>
-                    <input value={form.end_time} onChange={e => setForm({...form, end_time: e.target.value})}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" type="time" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">REPEAT</label>
-                    <select value={form.recurrence_type} onChange={e => setForm({...form, recurrence_type: e.target.value})}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none">
-                      <option value="daily">يومي — Daily</option>
-                      <option value="weekly">أسبوعي — Weekly</option>
-                      <option value="monthly">شهري — Monthly</option>
-                    </select>
-                  </div>
-
-                  {form.recurrence_type === 'weekly' && (
-                    <div className="md:col-span-2">
-                      <label className="block text-xs font-semibold text-gray-500 mb-2">DAYS</label>
-                      <div className="flex gap-2 flex-wrap">
-                        {DAY_NAMES.map(day => (
-                          <button key={day.key} type="button"
-                            onClick={() => toggleDay(day.key)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${form.recurrence_days.includes(day.key) ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                            {day.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
+                </div>
               )}
             </div>
-
             <div className="flex gap-3 mt-4">
               <button onClick={handleCreate} disabled={saving}
                 className="bg-blue-600 text-white px-6 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50">
-                {saving ? 'Creating...' : 'Create Session'}
+                {saving ? 'Saving...' : 'Create Session'}
               </button>
               <button onClick={() => setShowForm(false)}
                 className="border border-gray-200 text-gray-600 px-6 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50">
@@ -284,46 +190,59 @@ export default function OrgSessionsPage() {
 
         {loading ? (
           <div className="text-center py-12 text-gray-400">Loading...</div>
-        ) : sessions.length === 0 ? (
+        ) : templates.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-5xl mb-4">🎯</div>
             <p className="text-gray-500 font-medium">No sessions yet</p>
-            <p className="text-gray-400 text-sm mt-1">Create your first session to get started</p>
+            <p className="text-gray-400 text-sm mt-1">Create your first session template</p>
           </div>
         ) : (
           <div className="grid gap-3">
-            {sessions.map(sess => (
-              <div key={sess.id} className={`bg-white rounded-2xl border border-gray-200 overflow-hidden ${sess.status === 'cancelled' ? 'opacity-60' : ''}`}>
+            {templates.map(t => (
+              <div key={t.id} className={`bg-white rounded-2xl border border-gray-200 overflow-hidden ${!t.is_active ? 'opacity-60' : ''}`}>
                 <div className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 text-lg">
-                      {sess.is_recurring ? '🔄' : '📅'}
+                      {t.recurrence_type === 'single' ? '📅' : '🔄'}
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900 text-sm">{sess.title}</p>
-                      <p className="text-xs text-gray-400">{formatDateTime(sess.start_time)}</p>
+                      <p className="font-semibold text-gray-900 text-sm">{t.title}</p>
+                      <p className="text-xs text-gray-400">
+                        {t.start_time?.slice(0,5)} — {t.end_time?.slice(0,5)}
+                        {t.recurrence_type === 'weekly' && t.recurrence_days && (
+                          <span className="ml-2">• {getDayLabels(t.recurrence_days)}</span>
+                        )}
+                        {t.recurrence_type === 'daily' && <span className="ml-2">• يومي</span>}
+                      </p>
                       <div className="flex gap-2 mt-0.5">
-                        <span className="text-xs text-gray-400">👥 {sess.booked_count}/{sess.capacity}</span>
-                        {sess.is_recurring && <span className="text-xs bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full">🔄 Recurring</span>}
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${sess.status === 'scheduled' ? 'bg-green-50 text-green-600' : sess.status === 'cancelled' ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-500'}`}>{sess.status}</span>
+                        <span className="text-xs text-gray-400">👥 capacity: {t.capacity}</span>
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${t.recurrence_type === 'single' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'}`}>
+                          {t.recurrence_type === 'single' ? 'حصة واحدة' : t.recurrence_type === 'weekly' ? 'أسبوعي' : 'يومي'}
+                        </span>
+                        {!t.is_active && <span className="text-xs bg-red-50 text-red-500 px-1.5 py-0.5 rounded-full">Inactive</span>}
                       </div>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => editSession?.id === sess.id ? setEditSession(null) : handleEdit(sess)}
+                    <button onClick={() => { setEditTemplate(t); setEditForm({ title: t.title, capacity: String(t.capacity), recurrence_type: t.recurrence_type, recurrence_days: t.recurrence_days || [], start_time: t.start_time?.slice(0,5), end_time: t.end_time?.slice(0,5), is_active: t.is_active }) }}
                       className="text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 font-semibold hover:bg-blue-100 transition">
-                      {editSession?.id === sess.id ? 'Close' : '✏️ Edit'}
+                      ✏️ Edit
                     </button>
-                    <button onClick={() => handleDelete(sess.id)}
+                    <button onClick={() => toggleActive(t)}
+                      className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${t.is_active ? 'bg-amber-50 text-amber-600 hover:bg-amber-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
+                      {t.is_active ? 'إيقاف' : 'تفعيل'}
+                    </button>
+                    <button onClick={() => handleDelete(t.id)}
                       className="text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-600 font-semibold hover:bg-red-100 transition">
-                      🗑️ Delete
+                      🗑️
                     </button>
                   </div>
                 </div>
-                {editSession?.id === sess.id && (
-                  <div className="border-t border-gray-100 bg-gray-50 px-4 py-3">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                      <div className="md:col-span-2">
+
+                {editTemplate?.id === t.id && (
+                  <div className="border-t border-gray-100 bg-gray-50 px-4 py-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
+                      <div className="md:col-span-3">
                         <label className="block text-xs font-semibold text-gray-500 mb-1">TITLE</label>
                         <input value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})}
                           className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 bg-white" />
@@ -332,20 +251,6 @@ export default function OrgSessionsPage() {
                         <label className="block text-xs font-semibold text-gray-500 mb-1">CAPACITY</label>
                         <input value={editForm.capacity} onChange={e => setEditForm({...editForm, capacity: e.target.value})}
                           className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 bg-white" type="number" min="1" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-500 mb-1">STATUS</label>
-                        <select value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})}
-                          className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none">
-                          <option value="scheduled">Scheduled</option>
-                          <option value="completed">Completed</option>
-                          <option value="cancelled">Cancelled</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-500 mb-1">DATE</label>
-                        <input value={editForm.date} onChange={e => setEditForm({...editForm, date: e.target.value})}
-                          className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 bg-white" type="date" />
                       </div>
                       <div>
                         <label className="block text-xs font-semibold text-gray-500 mb-1">START TIME</label>
@@ -358,18 +263,12 @@ export default function OrgSessionsPage() {
                           className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 bg-white" type="time" />
                       </div>
                     </div>
-                    {editSession?.is_recurring && (
+                    {editForm.recurrence_type === 'weekly' && (
                       <div className="mb-3">
                         <label className="block text-xs font-semibold text-gray-500 mb-2">DAYS</label>
                         <div className="flex gap-2 flex-wrap">
                           {DAY_NAMES.map(day => (
-                            <button key={day.key} type="button"
-                              onClick={() => setEditForm(prev => ({
-                                ...prev,
-                                recurrence_days: prev.recurrence_days.includes(day.key)
-                                  ? prev.recurrence_days.filter(d => d !== day.key)
-                                  : [...prev.recurrence_days, day.key]
-                              }))}
+                            <button key={day.key} type="button" onClick={() => toggleDay(day.key, true)}
                               className={`px-3 py-1 rounded-lg text-xs font-medium transition ${editForm.recurrence_days.includes(day.key) ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                               {day.label}
                             </button>
@@ -378,11 +277,11 @@ export default function OrgSessionsPage() {
                       </div>
                     )}
                     <div className="flex gap-2">
-                      <button onClick={saveEdit} disabled={editSaving}
+                      <button onClick={saveEdit} disabled={saving}
                         className="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-700 disabled:opacity-50">
-                        {editSaving ? 'Saving...' : 'Save Changes'}
+                        {saving ? 'Saving...' : 'Save'}
                       </button>
-                      <button onClick={() => setEditSession(null)}
+                      <button onClick={() => setEditTemplate(null)}
                         className="border border-gray-200 text-gray-600 px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-100">
                         Cancel
                       </button>
