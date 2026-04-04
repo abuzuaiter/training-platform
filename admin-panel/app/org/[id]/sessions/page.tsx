@@ -21,7 +21,7 @@ export default function OrgSessionsPage() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [editSession, setEditSession] = useState<any>(null)
-  const [editForm, setEditForm] = useState({ title: '', capacity: '', status: '' })
+  const [editForm, setEditForm] = useState({ title: '', capacity: '', status: '', date: '', start_time: '', end_time: '' })
   const [editSaving, setEditSaving] = useState(false)
   const [form, setForm] = useState({
     title: '', capacity: '10', is_recurring: false,
@@ -41,15 +41,40 @@ export default function OrgSessionsPage() {
 
   async function handleEdit(sess: any) {
     setEditSession(sess)
-    setEditForm({ title: sess.title, capacity: String(sess.capacity), status: sess.status })
+    const QATAR_OFFSET = 3 * 60 * 60 * 1000
+    const startQt = new Date(new Date(sess.start_time).getTime() + QATAR_OFFSET)
+    const endQt = new Date(new Date(sess.end_time).getTime() + QATAR_OFFSET)
+    const dateStr = startQt.toISOString().split('T')[0]
+    const startStr = startQt.toTimeString().slice(0, 5)
+    const endStr = endQt.toTimeString().slice(0, 5)
+    setEditForm({
+      title: sess.title,
+      capacity: String(sess.capacity),
+      status: sess.status,
+      date: dateStr,
+      start_time: startStr,
+      end_time: endStr,
+    })
   }
 
   async function saveEdit() {
     if (!editSession) return
     setEditSaving(true)
+    const QATAR_OFFSET = 3 * 60 * 60 * 1000
+    let updateBody: any = { title: editForm.title, capacity: parseInt(editForm.capacity), status: editForm.status }
+    if (editForm.date && editForm.start_time && editForm.end_time) {
+      const [sh, sm] = editForm.start_time.split(':').map(Number)
+      const [eh, em] = editForm.end_time.split(':').map(Number)
+      const startDt = new Date(editForm.date)
+      startDt.setHours(sh, sm, 0, 0)
+      const endDt = new Date(editForm.date)
+      endDt.setHours(eh, em, 0, 0)
+      updateBody.start_time = new Date(startDt.getTime() - QATAR_OFFSET).toISOString()
+      updateBody.end_time = new Date(endDt.getTime() - QATAR_OFFSET).toISOString()
+    }
     const res = await fetch(`/api/calendar-sessions/${editSession.id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: editForm.title, capacity: parseInt(editForm.capacity), status: editForm.status })
+      body: JSON.stringify(updateBody)
     })
     if (res.ok) { setMessage('Session updated!'); setEditSession(null); load() }
     else { const d = await res.json(); setMessage(d.error || 'Error') }
@@ -291,8 +316,8 @@ export default function OrgSessionsPage() {
                 </div>
                 {editSession?.id === sess.id && (
                   <div className="border-t border-gray-100 bg-gray-50 px-4 py-3">
-                    <div className="grid grid-cols-3 gap-3 mb-3">
-                      <div className="col-span-2">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                      <div className="md:col-span-2">
                         <label className="block text-xs font-semibold text-gray-500 mb-1">TITLE</label>
                         <input value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})}
                           className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 bg-white" />
@@ -310,6 +335,21 @@ export default function OrgSessionsPage() {
                           <option value="completed">Completed</option>
                           <option value="cancelled">Cancelled</option>
                         </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-1">DATE</label>
+                        <input value={editForm.date} onChange={e => setEditForm({...editForm, date: e.target.value})}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 bg-white" type="date" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-1">START TIME</label>
+                        <input value={editForm.start_time} onChange={e => setEditForm({...editForm, start_time: e.target.value})}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 bg-white" type="time" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-1">END TIME</label>
+                        <input value={editForm.end_time} onChange={e => setEditForm({...editForm, end_time: e.target.value})}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 bg-white" type="time" />
                       </div>
                     </div>
                     <div className="flex gap-2">
