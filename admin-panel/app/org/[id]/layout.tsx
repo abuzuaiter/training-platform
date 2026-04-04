@@ -23,14 +23,14 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
   }
 
   const navItems = [
-    { href: `/org/${id}/dashboard`, label: 'Dashboard', icon: '🏠' },
-    { href: `/org/${id}/calendar`, label: 'Calendar', icon: '📅' },
-    { href: `/org/${id}/customers`, label: 'Customers', icon: '🧑‍🤝‍🧑' },
-    { href: `/org/${id}/members`, label: 'Members', icon: '👥' },
-    { href: `/org/${id}/sessions`, label: 'Sessions', icon: '📅' },
-    { href: `/org/${id}/packages`, label: 'Packages', icon: '📦' },
-    { href: `/org/${id}/enrollments`, label: 'Enrollments', icon: '🎓' },
-    { href: `/org/${id}/invitations`, label: 'Invitations', icon: '✉️' },
+    { href: `/org/${id}/dashboard`, label: 'Dashboard', icon: '⊞' },
+    { href: `/org/${id}/calendar`, label: 'Calendar', icon: '◫' },
+    { href: `/org/${id}/customers`, label: 'Customers', icon: '◉' },
+    { href: `/org/${id}/members`, label: 'Members', icon: '◎' },
+    { href: `/org/${id}/sessions`, label: 'Sessions', icon: '◈' },
+    { href: `/org/${id}/packages`, label: 'Packages', icon: '◧' },
+    { href: `/org/${id}/enrollments`, label: 'Enrollments', icon: '◪' },
+    { href: `/org/${id}/invitations`, label: 'Invitations', icon: '◻' },
   ]
 
   return (
@@ -91,7 +91,7 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
           )}
           <button onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition">
-            <span>🚪</span> Sign out
+            Sign out
           </button>
         </div>
       </div>
