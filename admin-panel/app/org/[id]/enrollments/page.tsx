@@ -12,22 +12,13 @@ const DAY_NAMES = [
   { key: 'saturday', label: 'السبت' },
 ]
 
-interface TimeSlot { start: string; end: string }
-interface DaySchedule { enabled: boolean; slots: TimeSlot[] }
-type Schedule = Record<string, DaySchedule>
-
-function initSchedule(): Schedule {
-  const s: Schedule = {}
-  DAY_NAMES.forEach(d => { s[d.key] = { enabled: false, slots: [{ start: '07:00', end: '08:00' }] } })
-  return s
-}
-
 export default function OrgEnrollmentsPage() {
   const params = useParams()
   const id = params.id as string
   const [enrollments, setEnrollments] = useState<any[]>([])
   const [customers, setCustomers] = useState<any[]>([])
   const [packages, setPackages] = useState<any[]>([])
+  const [templates, setTemplates] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -36,127 +27,24 @@ export default function OrgEnrollmentsPage() {
   const [selectedEnrollment, setSelectedEnrollment] = useState<any>(null)
   const [bookingMode, setBookingMode] = useState(false)
   const [booking, setBooking] = useState(false)
-  const [schedule, setSchedule] = useState<Schedule>(initSchedule())
-  const [startDate, setStartDate] = useState('')
-  const [singleDate, setSingleDate] = useState('')
-  const [singleStart, setSingleStart] = useState('07:00')
-  const [singleEnd, setSingleEnd] = useState('08:00')
+  const [selectedTemplates, setSelectedTemplates] = useState<string[]>([])
+  const [scheduleStartDate, setScheduleStartDate] = useState('')
 
   useEffect(() => { if (id) loadAll() }, [id])
 
   async function loadAll() {
     setLoading(true)
-    const [enrRes, custRes, pkgRes] = await Promise.all([
+    const [enrRes, custRes, pkgRes, tmpRes] = await Promise.all([
       fetch(`/api/enrollments?org_id=${id}`),
       fetch(`/api/organizations/${id}/customers`),
-      fetch(`/api/packages?org_id=${id}`)
+      fetch(`/api/packages?org_id=${id}`),
+      fetch(`/api/session-templates?org_id=${id}`)
     ])
     setEnrollments(enrRes.ok ? await enrRes.json() : [])
     setCustomers(custRes.ok ? await custRes.json() : [])
     setPackages(pkgRes.ok ? await pkgRes.json() : [])
+    setTemplates(tmpRes.ok ? await tmpRes.json() : [])
     setLoading(false)
-  }
-
-  function toggleDay(dayKey: string) {
-    setSchedule(prev => ({
-      ...prev,
-      [dayKey]: { ...prev[dayKey], enabled: !prev[dayKey].enabled }
-    }))
-  }
-
-  function addSlot(dayKey: string) {
-    setSchedule(prev => ({
-      ...prev,
-      [dayKey]: { ...prev[dayKey], slots: [...prev[dayKey].slots, { start: '07:00', end: '08:00' }] }
-    }))
-  }
-
-  function removeSlot(dayKey: string, idx: number) {
-    setSchedule(prev => ({
-      ...prev,
-      [dayKey]: { ...prev[dayKey], slots: prev[dayKey].slots.filter((_, i) => i !== idx) }
-    }))
-  }
-
-  function updateSlot(dayKey: string, idx: number, field: 'start' | 'end', value: string) {
-    setSchedule(prev => {
-      const slots = [...prev[dayKey].slots]
-      slots[idx] = { ...slots[idx], [field]: value }
-      return { ...prev, [dayKey]: { ...prev[dayKey], slots } }
-    })
-  }
-
-  function generateSessions() {
-    const pkg = packages.find(p => p.id === selectedEnrollment?.package_id)
-    if (!pkg) return []
-
-    const sessions: { title: string; start_time: string; end_time: string; }[] = []
-    const baseStr = startDate || selectedEnrollment?.start_date
-    if (!baseStr) return []
-    const base = new Date(baseStr)
-    if (isNaN(base.getTime())) return []
-    const totalSessions = pkg.type === 'sessions' ? pkg.sessions_count : 30
-    const enabledDays = DAY_NAMES.filter(d => schedule[d.key].enabled)
-    if (enabledDays.length === 0) return []
-
-    let current = new Date(base)
-    let count = 0
-    let attempts = 0
-
-    while (count < totalSessions && attempts < 365) {
-      const dayName = DAY_NAMES[current.getDay()].key
-      const daySchedule = schedule[dayName]
-
-      if (daySchedule.enabled) {
-        daySchedule.slots.forEach(slot => {
-          if (count < totalSessions) {
-            const [sh, sm] = slot.start.split(':').map(Number)
-            const [eh, em] = slot.end.split(':').map(Number)
-            const startDt = new Date(current)
-            startDt.setHours(sh, sm, 0, 0)
-            const endDt = new Date(current)
-            endDt.setHours(eh, em, 0, 0)
-            // Convert from Qatar time to UTC
-            const utcStart = new Date(startDt.getTime() - 3 * 60 * 60 * 1000)
-            const utcEnd = new Date(endDt.getTime() - 3 * 60 * 60 * 1000)
-            sessions.push({
-              title: selectedEnrollment?.customers?.full_name || 'Session',
-              start_time: utcStart.toISOString(),
-              end_time: utcEnd.toISOString(),
-            })
-            count++
-          }
-        })
-      }
-      current.setDate(current.getDate() + 1)
-      attempts++
-    }
-    return sessions
-  }
-
-  async function confirmBooking() {
-    if (!selectedEnrollment || selectedSessions.length === 0) return
-    setBooking(true)
-    let success = 0
-    for (const sessionId of selectedSessions) {
-      const res = await fetch('/api/calendar-bookings', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: sessionId,
-          customer_id: selectedEnrollment.customer_id,
-          organization_id: id,
-          enrollment_id: selectedEnrollment.id
-        })
-      })
-      if (res.ok) success++
-    }
-    setMessage(`${success} sessions assigned!`)
-    setBooking(false)
-    setBookingMode(false)
-    setSelectedEnrollment(null)
-    setSelectedSessions([])
-    setTimeout(() => setMessage(''), 3000)
-    loadAll()
   }
 
   async function handleCreate() {
@@ -174,6 +62,7 @@ export default function OrgEnrollmentsPage() {
       loadAll()
     } else { setMessage(data.error || 'Error') }
     setSaving(false)
+    setTimeout(() => setMessage(''), 3000)
   }
 
   async function handleCancel(enrollId: string) {
@@ -184,14 +73,149 @@ export default function OrgEnrollmentsPage() {
     loadAll()
   }
 
+  async function confirmSchedule() {
+    if (!selectedEnrollment || selectedTemplates.length === 0) return
+    setBooking(true)
+
+    const pkg = packages.find(p => p.id === selectedEnrollment.package_id)
+    const totalSessions = pkg?.type === 'sessions' ? pkg.sessions_count : 90
+    const QATAR_OFFSET = 3 * 60 * 60 * 1000
+    const baseDate = scheduleStartDate
+      ? new Date(scheduleStartDate)
+      : new Date(selectedEnrollment.start_date || new Date())
+
+    let createdCount = 0
+    const dayOrder = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday']
+
+    for (const templateId of selectedTemplates) {
+      const template = templates.find(t => t.id === templateId)
+      if (!template) continue
+
+      if (template.recurrence_type === 'single') {
+        // Single session — just create one
+        const [sh, sm] = template.start_time.slice(0,5).split(':').map(Number)
+        const [eh, em] = template.end_time.slice(0,5).split(':').map(Number)
+        const startDt = new Date(baseDate)
+        startDt.setHours(sh, sm, 0, 0)
+        const endDt = new Date(baseDate)
+        endDt.setHours(eh, em, 0, 0)
+
+        const sessRes = await fetch('/api/calendar-sessions', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            organization_id: id,
+            title: template.title,
+            start_time: new Date(startDt.getTime() - QATAR_OFFSET).toISOString(),
+            end_time: new Date(endDt.getTime() - QATAR_OFFSET).toISOString(),
+            capacity: template.capacity,
+          })
+        })
+        if (sessRes.ok) {
+          const sess = await sessRes.json()
+          await fetch('/api/calendar-bookings', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: sess.id, customer_id: selectedEnrollment.customer_id, organization_id: id, enrollment_id: selectedEnrollment.id })
+          })
+          createdCount++
+        }
+      } else if (template.recurrence_type === 'weekly' && template.recurrence_days?.length > 0) {
+        // Weekly recurring — generate sessions per day
+        const [sh, sm] = template.start_time.slice(0,5).split(':').map(Number)
+        const [eh, em] = template.end_time.slice(0,5).split(':').map(Number)
+        const selectedDayNums = template.recurrence_days.map((d: string) => dayOrder.indexOf(d)).sort((a: number, b: number) => a - b)
+        const endDate = new Date(baseDate)
+        endDate.setMonth(endDate.getMonth() + 3)
+
+        let current = new Date(baseDate)
+        let count = 0
+
+        while (current <= endDate && count < totalSessions) {
+          const currentDayNum = current.getDay()
+          if (selectedDayNums.includes(currentDayNum)) {
+            const startDt = new Date(current)
+            startDt.setHours(sh, sm, 0, 0)
+            const endDt = new Date(current)
+            endDt.setHours(eh, em, 0, 0)
+
+            const sessRes = await fetch('/api/calendar-sessions', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                organization_id: id,
+                title: template.title,
+                start_time: new Date(startDt.getTime() - QATAR_OFFSET).toISOString(),
+                end_time: new Date(endDt.getTime() - QATAR_OFFSET).toISOString(),
+                capacity: template.capacity,
+                is_recurring: true,
+                recurrence_type: 'weekly',
+              })
+            })
+            if (sessRes.ok) {
+              const sess = await sessRes.json()
+              await fetch('/api/calendar-bookings', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session_id: sess.id, customer_id: selectedEnrollment.customer_id, organization_id: id, enrollment_id: selectedEnrollment.id })
+              })
+              createdCount++
+              count++
+            }
+          }
+          current.setDate(current.getDate() + 1)
+        }
+      } else if (template.recurrence_type === 'daily') {
+        const [sh, sm] = template.start_time.slice(0,5).split(':').map(Number)
+        const [eh, em] = template.end_time.slice(0,5).split(':').map(Number)
+        let current = new Date(baseDate)
+        let count = 0
+
+        while (count < totalSessions) {
+          const startDt = new Date(current)
+          startDt.setHours(sh, sm, 0, 0)
+          const endDt = new Date(current)
+          endDt.setHours(eh, em, 0, 0)
+
+          const sessRes = await fetch('/api/calendar-sessions', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              organization_id: id,
+              title: template.title,
+              start_time: new Date(startDt.getTime() - QATAR_OFFSET).toISOString(),
+              end_time: new Date(endDt.getTime() - QATAR_OFFSET).toISOString(),
+              capacity: template.capacity,
+            })
+          })
+          if (sessRes.ok) {
+            const sess = await sessRes.json()
+            await fetch('/api/calendar-bookings', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ session_id: sess.id, customer_id: selectedEnrollment.customer_id, organization_id: id, enrollment_id: selectedEnrollment.id })
+            })
+            createdCount++
+            count++
+          }
+          current.setDate(current.getDate() + 1)
+        }
+      }
+    }
+
+    setMessage(`${createdCount} sessions created and booked!`)
+    setBooking(false)
+    setBookingMode(false)
+    setSelectedEnrollment(null)
+    setSelectedTemplates([])
+    setScheduleStartDate('')
+    setTimeout(() => setMessage(''), 4000)
+    loadAll()
+  }
+
   const statusColors: Record<string, string> = {
     active: 'bg-green-50 text-green-600',
     completed: 'bg-blue-50 text-blue-600',
     cancelled: 'bg-red-50 text-red-500',
   }
 
-  const selectedPkg = packages.find(p => p.id === selectedEnrollment?.package_id)
-  const previewSessions = selectedPkg?.type !== 'single' ? generateSessions() : []
+  function getDayLabels(days: string[]) {
+    return days?.map(d => DAY_NAMES.find(n => n.key === d)?.label).filter(Boolean).join('، ')
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -233,7 +257,7 @@ export default function OrgEnrollmentsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">START DATE</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">START DATE (optional)</label>
                 <input value={form.start_date} onChange={e => setForm({...form, start_date: e.target.value})}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" type="date" />
               </div>
@@ -284,9 +308,9 @@ export default function OrgEnrollmentsPage() {
                     </div>
                     {enr.status === 'active' && (
                       <div className="flex gap-2">
-                        <button onClick={() => { setSelectedEnrollment({...enr, customer_id: enr.customer_id || enr.customers?.id}); setBookingMode(true); setSchedule(initSchedule()) }}
+                        <button onClick={() => { setSelectedEnrollment(enr); setBookingMode(true); setSelectedTemplates([]); setScheduleStartDate('') }}
                           className="text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 font-semibold hover:bg-blue-100 transition">
-                          📅 Assign Sessions
+                          📅 Schedule
                         </button>
                         <button onClick={() => handleCancel(enr.id)}
                           className="text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-600 font-semibold hover:bg-red-100 transition">
@@ -304,52 +328,57 @@ export default function OrgEnrollmentsPage() {
         {/* Schedule Modal */}
         {bookingMode && selectedEnrollment && (
           <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 px-4">
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 w-full max-w-xl max-h-[90vh] flex flex-col">
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 w-full max-w-lg max-h-[90vh] flex flex-col">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-lg font-bold text-gray-900">Schedule Sessions</h2>
-                  <p className="text-sm text-gray-400">{selectedEnrollment.customers?.full_name} — {selectedPkg?.name}</p>
-                  {selectedPkg?.type === 'sessions' && (
-                    <p className="text-xs text-blue-600 mt-0.5">{selectedPkg.sessions_count} sessions total</p>
-                  )}
+                  <p className="text-sm text-gray-400">{selectedEnrollment.customers?.full_name} — {selectedEnrollment.packages?.name}</p>
                 </div>
                 <button onClick={() => setBookingMode(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
               </div>
 
+              <div className="mb-4">
+                <label className="block text-xs font-semibold text-gray-500 mb-1">START DATE (optional)</label>
+                <input value={scheduleStartDate} onChange={e => setScheduleStartDate(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                  type="date" placeholder="Defaults to enrollment start date" />
+              </div>
+
               <div className="flex-1 overflow-y-auto space-y-2 mb-4">
-                {availableSessions.length === 0 ? (
+                <p className="text-xs font-semibold text-gray-500 mb-2">SELECT SESSION TEMPLATES</p>
+                {templates.filter(t => t.is_active).length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-gray-400 text-sm">No upcoming sessions available</p>
-                    <p className="text-gray-300 text-xs mt-1">Create sessions first from the Sessions page</p>
+                    <p className="text-gray-400 text-sm">No active session templates</p>
+                    <p className="text-gray-300 text-xs mt-1">Create templates from the Sessions page first</p>
                   </div>
-                ) : availableSessions.map(sess => {
-                  const isSelected = selectedSessions.includes(sess.id)
-                  const isFull = sess.booked_count >= sess.capacity
-                  const sessDate = new Date(new Date(sess.start_time).getTime() + 3*60*60*1000)
+                ) : templates.filter(t => t.is_active).map(t => {
+                  const isSelected = selectedTemplates.includes(t.id)
                   return (
-                    <label key={sess.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition ${isSelected ? 'border-blue-300 bg-blue-50' : 'border-gray-100 hover:border-gray-200'} ${isFull ? 'opacity-40 cursor-not-allowed' : ''}`}>
-                      <input type="checkbox" checked={isSelected} disabled={isFull}
-                        onChange={e => setSelectedSessions(e.target.checked ? [...selectedSessions, sess.id] : selectedSessions.filter(s => s !== sess.id))}
+                    <label key={t.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition ${isSelected ? 'border-blue-300 bg-blue-50' : 'border-gray-100 hover:border-gray-200'}`}>
+                      <input type="checkbox" checked={isSelected}
+                        onChange={e => setSelectedTemplates(e.target.checked ? [...selectedTemplates, t.id] : selectedTemplates.filter(s => s !== t.id))}
                         className="w-4 h-4 accent-blue-600" />
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">{sess.title}</p>
+                        <p className="text-sm font-medium text-gray-900">{t.title}</p>
                         <p className="text-xs text-gray-400">
-                          {sessDate.toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })} — {sessDate.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' })}
+                          {t.start_time?.slice(0,5)} — {t.end_time?.slice(0,5)}
+                          {t.recurrence_type === 'weekly' && t.recurrence_days && (
+                            <span className="ml-1">• {getDayLabels(t.recurrence_days)}</span>
+                          )}
+                          {t.recurrence_type === 'daily' && <span className="ml-1">• يومي</span>}
+                          {t.recurrence_type === 'single' && <span className="ml-1">• حصة واحدة</span>}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-400">{sess.booked_count}/{sess.capacity}</p>
-                        {isFull && <p className="text-xs text-red-400">Full</p>}
-                      </div>
+                      <span className="text-xs text-gray-400">👥 {t.capacity}</span>
                     </label>
                   )
                 })}
               </div>
 
               <div className="flex gap-3 border-t border-gray-100 pt-4">
-                <button onClick={confirmBooking} disabled={booking || selectedSessions.length === 0}
+                <button onClick={confirmSchedule} disabled={booking || selectedTemplates.length === 0}
                   className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50">
-                  {booking ? 'Assigning...' : `Assign ${selectedSessions.length} Session${selectedSessions.length !== 1 ? 's' : ''}`}
+                  {booking ? 'Creating sessions...' : `Schedule ${selectedTemplates.length} template${selectedTemplates.length !== 1 ? 's' : ''}`}
                 </button>
                 <button onClick={() => setBookingMode(false)}
                   className="border border-gray-200 text-gray-600 px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-gray-50">
