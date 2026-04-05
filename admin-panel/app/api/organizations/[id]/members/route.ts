@@ -30,6 +30,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   if (email) {
+    // Check if already a member by email
+    const { data: existingMember } = await supabaseAdmin
+      .from('organization_members')
+      .select('id, status')
+      .eq('organization_id', id)
+      .eq('email', email)
+      .maybeSingle()
+
+    if (existingMember) {
+      return NextResponse.json({ error: 'This email is already a member' }, { status: 400 })
+    }
+
     const { data: existingUser } = await supabaseAdmin
       .from('users').select('id').eq('email', email).maybeSingle()
 
