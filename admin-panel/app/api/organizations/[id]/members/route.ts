@@ -8,32 +8,46 @@ const supabaseAdmin = createClient(
 
 export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { data, error } = await supabaseAdmin
+  const { data: members, error } = await supabaseAdmin
     .from('organization_members')
-    .select('*, users(id, full_name, first_name, last_name, email, phone, mobile)')
+    .select('*')
     .eq('organization_id', id)
+
   if (error) return NextResponse.json([], { status: 200 })
-  return NextResponse.json(data || [])
+  if (!members || members.length === 0) return NextResponse.json([])
+
+  // Manual join with users table
+  const userIds = members.filter(m => m.user_id).map(m => m.user_id)
+  let usersMap: Record<string, any> = {}
+
+  if (userIds.length > 0) {
+    const { data: users } = await supabaseAdmin
+      .from('users')
+      .select('id, full_name, first_name, last_name, email, mobile')
+      .in('id', userIds)
+
+    if (users) {
+      users.forEach(u => { usersMap[u.id] = u })
+    }
+  }
+
+  const result = members.map(m => ({
+    ...m,
+    users: m.user_id ? usersMap[m.user_id] || null : null
+  }))
+
+  return NextResponse.json(result)
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { user_id, email, role, status } = await req.json()
 
-  if (user_id) {
-    const { data, error } = await supabaseAdmin
-      .from('organization_members')
-      .insert({ organization_id: id, user_id, email, role: role || 'coach', status: status || 'active' })
-      .select().single()
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json(data)
-  }
-
   if (email) {
-    // Check if already a member by email
+    // Check if already a member
     const { data: existingMember } = await supabaseAdmin
       .from('organization_members')
-      .select('id, status')
+      .select('id')
       .eq('organization_id', id)
       .eq('email', email)
       .maybeSingle()
@@ -42,6 +56,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'This email is already a member' }, { status: 400 })
     }
 
+    // Check if user exists
     const { data: existingUser } = await supabaseAdmin
       .from('users').select('id').eq('email', email).maybeSingle()
 
@@ -55,11 +70,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         status: existingUser ? 'active' : 'pending'
       })
       .select().single()
+
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ ...data, already_exists: !!existingUser })
   }
 
-  return NextResponse.json({ error: 'Email or user_id required' }, { status: 400 })
+  if (user_id) {
+    const { data, error } = await supabaseAdmin
+      .from('organization_members')
+      .insert({ organization_id: id, user_id, email, role: role || 'coach', status: status || 'active' })
+      .select().single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json(data)
+  }
+
+  return NextResponse.json({ error: 'Email required' }, { status: 400 })
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -76,17 +101,4 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
-}
-
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-  const url = new URL(req.url)
-  const memberId = url.pathname.split('/').pop()
-  const { error } = await supabaseAdmin
-    .from('organization_members')
-    .delete()
-    .eq('id', memberId)
-    .eq('organization_id', id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ success: true })
 }
