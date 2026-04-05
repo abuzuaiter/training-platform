@@ -28,31 +28,70 @@ export async function POST(req: NextRequest) {
     role = 'super_admin'
   } else {
     // Check if org admin
-    const { data: membership } = await supabaseAdmin
+    const { data: adminMembership } = await supabaseAdmin
       .from('organization_members')
       .select('organization_id, role')
       .eq('user_id', data.user.id)
       .eq('role', 'admin')
+      .eq('status', 'active')
       .limit(1)
       .maybeSingle()
 
-    if (membership) {
+    if (adminMembership) {
       role = 'org_admin'
-      organization_id = membership.organization_id
+      organization_id = adminMembership.organization_id
     } else {
-      // Check if custom role user
-      const { data: userRole } = await supabaseAdmin
-        .from('user_roles')
-        .select('roles(name, permissions)')
-        .eq('user_id', data.user.id)
-        .limit(1)
+      // Link email to organization_members if pending
+      const { data: pendingMember } = await supabaseAdmin
+        .from('organization_members')
+        .select('id, organization_id, role')
+        .eq('email', email.toLowerCase())
+        .eq('status', 'pending')
         .maybeSingle()
 
-      if (userRole?.roles) {
-        role = 'custom'
-        permissions = (userRole.roles as any).permissions || {}
+      if (pendingMember) {
+        // Activate and link user_id
+        await supabaseAdmin
+          .from('organization_members')
+          .update({ user_id: data.user.id, status: 'active' })
+          .eq('id', pendingMember.id)
+
+        // Also update users table
+        await supabaseAdmin
+          .from('users')
+          .upsert({ id: data.user.id, email: data.user.email, full_name: data.user.email })
+
+        role = 'org_member'
+        organization_id = pendingMember.organization_id
       } else {
-        return NextResponse.json({ error: 'You do not have access to this portal' }, { status: 403 })
+        // Check if already active member
+        const { data: activeMember } = await supabaseAdmin
+          .from('organization_members')
+          .select('organization_id, role')
+          .eq('user_id', data.user.id)
+          .eq('status', 'active')
+          .limit(1)
+          .maybeSingle()
+
+        if (activeMember) {
+          role = 'org_member'
+          organization_id = activeMember.organization_id
+        } else {
+          // Check custom role
+          const { data: userRole } = await supabaseAdmin
+            .from('user_roles')
+            .select('roles(name, permissions)')
+            .eq('user_id', data.user.id)
+            .limit(1)
+            .maybeSingle()
+
+          if (userRole?.roles) {
+            role = 'custom'
+            permissions = (userRole.roles as any).permissions || {}
+          } else {
+            return NextResponse.json({ error: 'You do not have access to this portal' }, { status: 403 })
+          }
+        }
       }
     }
   }

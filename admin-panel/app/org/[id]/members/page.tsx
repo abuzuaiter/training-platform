@@ -53,27 +53,20 @@ export default function OrgTeamPage() {
   async function handleAdd() {
     if (!form.email) { setMessage('Email is required'); return }
     setAdding(true)
-    const userRes = await fetch(`/api/users?email=${encodeURIComponent(form.email)}`)
-    const users = userRes.ok ? await userRes.json() : []
-    const user = Array.isArray(users) ? users.find((u: any) => u.email === form.email) : null
-
-    if (user) {
-      const res = await fetch(`/api/organizations/${id}/members`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id, role: form.role, status: 'active' })
-      })
-      setMessage(res.ok ? 'Member added!' : 'Error adding member')
+    const res = await fetch(`/api/organizations/${id}/members`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: form.email.toLowerCase(), role: form.role })
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setMessage(data.already_exists ? 'Member added and activated!' : 'Member added! They can now sign up with this email.')
     } else {
-      const res = await fetch('/api/invitations', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: form.email, role: form.role, organization_id: id })
-      })
-      setMessage(res.ok ? 'Invitation sent!' : 'Error sending invitation')
+      setMessage(data.error || 'Error')
     }
     setAdding(false)
     setShowForm(false)
     setForm({ email: '', role: 'coach' })
-    setTimeout(() => setMessage(''), 3000)
+    setTimeout(() => setMessage(''), 4000)
     load()
   }
 
@@ -149,7 +142,7 @@ export default function OrgTeamPage() {
         {showForm && (
           <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
             <h2 className="text-base font-bold text-gray-900 mb-1">Add Team Member</h2>
-            <p className="text-xs text-gray-400 mb-3">Registered → added directly. New email → invitation sent.</p>
+            <p className="text-xs text-gray-400 mb-3">Add their email and role. They can sign up with this email to get access automatically.</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="md:col-span-2">
                 <label className="block text-xs font-semibold text-gray-500 mb-1">EMAIL *</label>
