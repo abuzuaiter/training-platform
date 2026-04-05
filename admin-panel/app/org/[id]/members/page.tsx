@@ -47,7 +47,11 @@ export default function OrgTeamPage() {
     const first = m.users?.first_name || ''
     const last = m.users?.last_name || ''
     if (first || last) return `${first} ${last}`.trim()
-    return m.users?.full_name || m.users?.email || 'Unknown'
+    return m.users?.full_name || m.users?.email || m.email || 'Unknown'
+  }
+  
+  function getEmail(m: any) {
+    return m.users?.email || m.email || ''
   }
 
   async function handleAdd() {
@@ -110,8 +114,8 @@ export default function OrgTeamPage() {
     load()
   }
 
-  const activeMembers = members.filter(m => m.status === 'active' || m.status === 'inactive')
-  const pendingMembers = members.filter(m => m.status === 'pending')
+  const activeMembers = members.filter(m => m.status === 'active' || m.status === 'inactive' || (m.status === 'pending' && m.email && !m.users?.id))
+  const pendingMembers = members.filter(m => m.status === 'pending' && m.users?.id)
   const pendingInvites = invitations.filter(i => i.status === 'pending')
 
   const filteredActive = activeMembers.filter(m =>
@@ -191,12 +195,13 @@ export default function OrgTeamPage() {
                     <div className="flex items-center justify-between px-6 py-3 border-b border-gray-50 hover:bg-gray-50">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-sm">
-                          {getName(m).charAt(0).toUpperCase()}
+                          {(getName(m) || getEmail(m) || '?').charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-900">{getName(m)}</p>
-                          <p className="text-xs text-gray-400">{m.users?.email}</p>
+                          <p className="text-xs text-gray-400">{getEmail(m)}</p>
                           {m.users?.mobile && <p className="text-xs text-gray-400">{m.users.mobile}</p>}
+                          {!m.users?.id && <span className="text-xs bg-blue-50 text-blue-500 px-1.5 py-0.5 rounded-full">Not signed up yet</span>}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
