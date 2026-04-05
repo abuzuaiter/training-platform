@@ -59,7 +59,7 @@ export default function OrgTeamPage() {
     load()
   }
 
-  async function handleEdit() {
+  async function handleSaveEdit() {
     if (!editMember) return
     setSaving(editMember.id)
     // Update user info
@@ -101,6 +101,7 @@ export default function OrgTeamPage() {
     })
     setMessage('Invitation sent!')
     setTimeout(() => setMessage(''), 3000)
+    load()
   }
 
   const roleColors: Record<string, string> = {
@@ -115,7 +116,7 @@ export default function OrgTeamPage() {
     other: 'bg-gray-50 text-gray-500',
   }
 
-  const roles = ['admin','coach','trainer','doctor','therapist','receptionist','trainee','parent','other']
+  const roleOptions = ['admin','coach','trainer','doctor','therapist','receptionist','trainee','parent','other']
 
   const filtered = members.filter(m =>
     m.users?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -123,6 +124,13 @@ export default function OrgTeamPage() {
   )
 
   const pendingInvites = invitations.filter(i => i.status === 'pending')
+
+  function getName(m: any) {
+    if (m.users?.first_name || m.users?.last_name) {
+      return `${m.users?.first_name || ''} ${m.users?.last_name || ''}`.trim()
+    }
+    return m.users?.full_name || m.users?.email || 'Unknown'
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -147,7 +155,7 @@ export default function OrgTeamPage() {
         {showForm && (
           <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
             <h2 className="text-base font-bold text-gray-900 mb-1">Add Team Member</h2>
-            <p className="text-xs text-gray-400 mb-3">If registered → added directly. If not → invitation sent.</p>
+            <p className="text-xs text-gray-400 mb-3">Registered user → added directly. New email → invitation sent.</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="md:col-span-2">
                 <label className="block text-xs font-semibold text-gray-500 mb-1">EMAIL *</label>
@@ -159,7 +167,7 @@ export default function OrgTeamPage() {
                 <label className="block text-xs font-semibold text-gray-500 mb-1">ROLE</label>
                 <select value={form.role} onChange={e => setForm({...form, role: e.target.value})}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none">
-                  {roles.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
+                  {roleOptions.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
                 </select>
               </div>
             </div>
@@ -194,16 +202,13 @@ export default function OrgTeamPage() {
                   <div key={m.id}>
                     <div className="flex items-center justify-between px-6 py-3 border-b border-gray-50 hover:bg-gray-50">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-semibold text-sm">
-                          {(m.users?.first_name?.charAt(0) || m.users?.full_name?.charAt(0) || '?').toUpperCase()}
+                        <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-sm">
+                          {(getName(m).charAt(0) || '?').toUpperCase()}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {m.users?.first_name && m.users?.last_name
-                              ? `${m.users.first_name} ${m.users.last_name}`
-                              : m.users?.full_name || 'Unknown'}
-                          </p>
-                          <p className="text-xs text-gray-400">{m.users?.email} {m.users?.mobile && `· ${m.users.mobile}`}</p>
+                          <p className="text-sm font-medium text-gray-900">{getName(m)}</p>
+                          <p className="text-xs text-gray-400">{m.users?.email}</p>
+                          {m.users?.mobile && <p className="text-xs text-gray-400">{m.users.mobile}</p>}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -222,22 +227,23 @@ export default function OrgTeamPage() {
                             role: m.role
                           })
                         }}
-                          className="text-xs px-3 py-1 rounded-lg bg-blue-50 text-blue-600 font-semibold hover:bg-blue-100 transition">
+                          className="text-xs px-2 py-1 rounded-lg bg-gray-50 text-gray-600 font-semibold hover:bg-gray-100 transition">
                           Edit
                         </button>
                         <button onClick={() => toggleStatus(m)} disabled={saving === m.id}
-                          className={`text-xs px-3 py-1 rounded-lg font-semibold transition ${m.status === 'active' ? 'bg-red-50 text-red-500 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
+                          className={`text-xs px-2 py-1 rounded-lg font-semibold transition ${m.status === 'active' ? 'bg-red-50 text-red-500 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
                           {saving === m.id ? '...' : m.status === 'active' ? 'Deactivate' : 'Activate'}
                         </button>
                         <button onClick={() => sendInvite(m.users?.email, m.role)}
-                          className="text-xs px-3 py-1 rounded-lg bg-gray-50 text-gray-500 font-semibold hover:bg-gray-100 transition">
+                          className="text-xs px-2 py-1 rounded-lg bg-blue-50 text-blue-600 font-semibold hover:bg-blue-100 transition">
                           Resend
                         </button>
                       </div>
                     </div>
 
+                    {/* Edit Panel */}
                     {editMember?.id === m.id && (
-                      <div className="px-6 py-4 bg-blue-50 border-b border-blue-100">
+                      <div className="border-b border-gray-100 bg-gray-50 px-6 py-4">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                           <div>
                             <label className="block text-xs font-semibold text-gray-500 mb-1">FIRST NAME</label>
@@ -259,12 +265,12 @@ export default function OrgTeamPage() {
                             <label className="block text-xs font-semibold text-gray-500 mb-1">ROLE</label>
                             <select value={editForm.role} onChange={e => setEditForm({...editForm, role: e.target.value})}
                               className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none">
-                              {roles.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
+                              {roleOptions.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
                             </select>
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <button onClick={handleEdit} disabled={saving === m.id}
+                          <button onClick={handleSaveEdit} disabled={saving === m.id}
                             className="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-700 disabled:opacity-50">
                             {saving === m.id ? 'Saving...' : 'Save'}
                           </button>
@@ -288,7 +294,7 @@ export default function OrgTeamPage() {
                 {pendingInvites.map(inv => (
                   <div key={inv.id} className="flex items-center justify-between px-6 py-3 border-b border-gray-50">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 font-semibold text-sm">
+                      <div className="w-9 h-9 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 font-bold text-sm">
                         {inv.email?.charAt(0).toUpperCase()}
                       </div>
                       <div>
