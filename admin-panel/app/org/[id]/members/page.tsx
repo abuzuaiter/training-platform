@@ -17,6 +17,19 @@ export default function OrgTeamPage() {
   const [editForm, setEditForm] = useState({ first_name: '', last_name: '', mobile: '', role: '' })
   const [adding, setAdding] = useState(false)
 
+  const roleOptions = ['admin','coach','trainer','doctor','therapist','receptionist','trainee','parent','other']
+  const roleColors: Record<string, string> = {
+    admin: 'bg-red-50 text-red-600',
+    coach: 'bg-blue-50 text-blue-600',
+    trainer: 'bg-blue-50 text-blue-700',
+    doctor: 'bg-teal-50 text-teal-600',
+    therapist: 'bg-purple-50 text-purple-600',
+    receptionist: 'bg-green-50 text-green-600',
+    trainee: 'bg-gray-50 text-gray-600',
+    parent: 'bg-amber-50 text-amber-600',
+    other: 'bg-gray-50 text-gray-500',
+  }
+
   useEffect(() => { if (id) load() }, [id])
 
   async function load() {
@@ -30,27 +43,32 @@ export default function OrgTeamPage() {
     setLoading(false)
   }
 
+  function getName(m: any) {
+    const first = m.users?.first_name || ''
+    const last = m.users?.last_name || ''
+    if (first || last) return `${first} ${last}`.trim()
+    return m.users?.full_name || m.users?.email || 'Unknown'
+  }
+
   async function handleAdd() {
     if (!form.email) { setMessage('Email is required'); return }
     setAdding(true)
-    const userRes = await fetch(`/api/users?email=${form.email}`)
+    const userRes = await fetch(`/api/users?email=${encodeURIComponent(form.email)}`)
     const users = userRes.ok ? await userRes.json() : []
-    const user = users.find((u: any) => u.email === form.email)
+    const user = Array.isArray(users) ? users.find((u: any) => u.email === form.email) : null
 
     if (user) {
       const res = await fetch(`/api/organizations/${id}/members`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: user.id, role: form.role, status: 'active' })
       })
-      if (res.ok) { setMessage('Member added!') }
-      else { const d = await res.json(); setMessage(d.error || 'Error') }
+      setMessage(res.ok ? 'Member added!' : 'Error adding member')
     } else {
       const res = await fetch('/api/invitations', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: form.email, role: form.role, organization_id: id })
       })
-      if (res.ok) { setMessage('Invitation sent!') }
-      else { const d = await res.json(); setMessage(d.error || 'Error') }
+      setMessage(res.ok ? 'Invitation sent!' : 'Error sending invitation')
     }
     setAdding(false)
     setShowForm(false)
@@ -62,17 +80,11 @@ export default function OrgTeamPage() {
   async function handleSaveEdit() {
     if (!editMember) return
     setSaving(editMember.id)
-    // Update user info
+    const fullName = `${editForm.first_name} ${editForm.last_name}`.trim()
     await fetch(`/api/users/${editMember.users?.id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        first_name: editForm.first_name,
-        last_name: editForm.last_name,
-        mobile: editForm.mobile,
-        full_name: `${editForm.first_name} ${editForm.last_name}`.trim()
-      })
+      body: JSON.stringify({ first_name: editForm.first_name, last_name: editForm.last_name, mobile: editForm.mobile, full_name: fullName })
     })
-    // Update role
     await fetch(`/api/organizations/${id}/members`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ member_id: editMember.id, role: editForm.role })
@@ -86,9 +98,10 @@ export default function OrgTeamPage() {
 
   async function toggleStatus(m: any) {
     setSaving(m.id)
+    const newStatus = m.status === 'active' ? 'inactive' : 'active'
     await fetch(`/api/organizations/${id}/members`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ member_id: m.id, status: m.status === 'active' ? 'inactive' : 'active' })
+      body: JSON.stringify({ member_id: m.id, status: newStatus })
     })
     setSaving(null)
     load()
@@ -104,40 +117,21 @@ export default function OrgTeamPage() {
     load()
   }
 
-  const roleColors: Record<string, string> = {
-    admin: 'bg-red-50 text-red-600',
-    coach: 'bg-blue-50 text-blue-600',
-    trainer: 'bg-blue-50 text-blue-700',
-    doctor: 'bg-teal-50 text-teal-600',
-    therapist: 'bg-purple-50 text-purple-600',
-    receptionist: 'bg-green-50 text-green-600',
-    trainee: 'bg-gray-50 text-gray-600',
-    parent: 'bg-amber-50 text-amber-600',
-    other: 'bg-gray-50 text-gray-500',
-  }
-
-  const roleOptions = ['admin','coach','trainer','doctor','therapist','receptionist','trainee','parent','other']
-
-  const filtered = members.filter(m =>
-    m.users?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-    m.users?.email?.toLowerCase().includes(search.toLowerCase())
-  )
-
+  const activeMembers = members.filter(m => m.status === 'active' || m.status === 'inactive')
+  const pendingMembers = members.filter(m => m.status === 'pending')
   const pendingInvites = invitations.filter(i => i.status === 'pending')
 
-  function getName(m: any) {
-    if (m.users?.first_name || m.users?.last_name) {
-      return `${m.users?.first_name || ''} ${m.users?.last_name || ''}`.trim()
-    }
-    return m.users?.full_name || m.users?.email || 'Unknown'
-  }
+  const filteredActive = activeMembers.filter(m =>
+    getName(m).toLowerCase().includes(search.toLowerCase()) ||
+    m.users?.email?.toLowerCase().includes(search.toLowerCase())
+  )
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-gray-900">Team</h1>
-          <p className="text-xs text-gray-400">{filtered.length} members · {pendingInvites.length} pending</p>
+          <p className="text-xs text-gray-400">{activeMembers.length} members · {pendingMembers.length + pendingInvites.length} pending</p>
         </div>
         <button onClick={() => setShowForm(!showForm)}
           className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
@@ -155,7 +149,7 @@ export default function OrgTeamPage() {
         {showForm && (
           <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
             <h2 className="text-base font-bold text-gray-900 mb-1">Add Team Member</h2>
-            <p className="text-xs text-gray-400 mb-3">Registered user → added directly. New email → invitation sent.</p>
+            <p className="text-xs text-gray-400 mb-3">Registered → added directly. New email → invitation sent.</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="md:col-span-2">
                 <label className="block text-xs font-semibold text-gray-500 mb-1">EMAIL *</label>
@@ -173,7 +167,7 @@ export default function OrgTeamPage() {
             </div>
             <div className="flex gap-3 mt-3">
               <button onClick={handleAdd} disabled={adding}
-                className="bg-blue-600 text-white px-5 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50">
+                className="bg-blue-600 text-white px-5 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
                 {adding ? 'Processing...' : 'Add / Invite'}
               </button>
               <button onClick={() => setShowForm(false)}
@@ -193,17 +187,18 @@ export default function OrgTeamPage() {
         ) : (
           <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
 
-            {filtered.length > 0 && (
+            {/* Active/Inactive Members */}
+            {filteredActive.length > 0 && (
               <>
                 <div className="px-6 py-2 bg-gray-50 border-b border-gray-100">
-                  <p className="text-xs font-semibold text-gray-500">MEMBERS</p>
+                  <p className="text-xs font-semibold text-gray-500">MEMBERS ({filteredActive.length})</p>
                 </div>
-                {filtered.map(m => (
+                {filteredActive.map(m => (
                   <div key={m.id}>
                     <div className="flex items-center justify-between px-6 py-3 border-b border-gray-50 hover:bg-gray-50">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-sm">
-                          {(getName(m).charAt(0) || '?').toUpperCase()}
+                          {getName(m).charAt(0).toUpperCase()}
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-900">{getName(m)}</p>
@@ -218,15 +213,7 @@ export default function OrgTeamPage() {
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${m.status === 'active' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
                           {m.status}
                         </span>
-                        <button onClick={() => {
-                          setEditMember(m)
-                          setEditForm({
-                            first_name: m.users?.first_name || '',
-                            last_name: m.users?.last_name || '',
-                            mobile: m.users?.mobile || '',
-                            role: m.role
-                          })
-                        }}
+                        <button onClick={() => { setEditMember(m); setEditForm({ first_name: m.users?.first_name || '', last_name: m.users?.last_name || '', mobile: m.users?.mobile || '', role: m.role }) }}
                           className="text-xs px-2 py-1 rounded-lg bg-gray-50 text-gray-600 font-semibold hover:bg-gray-100 transition">
                           Edit
                         </button>
@@ -240,8 +227,6 @@ export default function OrgTeamPage() {
                         </button>
                       </div>
                     </div>
-
-                    {/* Edit Panel */}
                     {editMember?.id === m.id && (
                       <div className="border-b border-gray-100 bg-gray-50 px-6 py-4">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
@@ -258,8 +243,7 @@ export default function OrgTeamPage() {
                           <div>
                             <label className="block text-xs font-semibold text-gray-500 mb-1">MOBILE</label>
                             <input value={editForm.mobile} onChange={e => setEditForm({...editForm, mobile: e.target.value})}
-                              className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 bg-white"
-                              placeholder="+974..." />
+                              className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 bg-white" placeholder="+974..." />
                           </div>
                           <div>
                             <label className="block text-xs font-semibold text-gray-500 mb-1">ROLE</label>
@@ -286,10 +270,41 @@ export default function OrgTeamPage() {
               </>
             )}
 
+            {/* Pending Members */}
+            {pendingMembers.length > 0 && (
+              <>
+                <div className="px-6 py-2 bg-orange-50 border-b border-orange-100">
+                  <p className="text-xs font-semibold text-orange-600">AWAITING ACTIVATION ({pendingMembers.length})</p>
+                </div>
+                {pendingMembers.map(m => (
+                  <div key={m.id} className="flex items-center justify-between px-6 py-3 border-b border-gray-50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 font-bold text-sm">
+                        {getName(m).charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{getName(m)}</p>
+                        <p className="text-xs text-gray-400">{m.users?.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleColors[m.role] || 'bg-gray-50 text-gray-600'}`}>{m.role}</span>
+                      <span className="text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full font-medium">pending</span>
+                      <button onClick={() => toggleStatus(m)} disabled={saving === m.id}
+                        className="text-xs px-3 py-1 rounded-lg bg-green-50 text-green-600 font-semibold hover:bg-green-100 transition">
+                        {saving === m.id ? '...' : 'Activate'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+
+            {/* Pending Invitations */}
             {pendingInvites.length > 0 && (
               <>
                 <div className="px-6 py-2 bg-amber-50 border-b border-amber-100">
-                  <p className="text-xs font-semibold text-amber-600">PENDING INVITATIONS</p>
+                  <p className="text-xs font-semibold text-amber-600">PENDING INVITATIONS ({pendingInvites.length})</p>
                 </div>
                 {pendingInvites.map(inv => (
                   <div key={inv.id} className="flex items-center justify-between px-6 py-3 border-b border-gray-50">
@@ -303,9 +318,7 @@ export default function OrgTeamPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleColors[inv.role] || 'bg-gray-50 text-gray-600'}`}>
-                        {inv.role}
-                      </span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleColors[inv.role] || 'bg-gray-50 text-gray-600'}`}>{inv.role}</span>
                       <span className="text-xs bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full font-medium">pending</span>
                       <button onClick={() => sendInvite(inv.email, inv.role)}
                         className="text-xs px-3 py-1 rounded-lg bg-blue-50 text-blue-600 font-semibold hover:bg-blue-100 transition">
@@ -317,7 +330,7 @@ export default function OrgTeamPage() {
               </>
             )}
 
-            {filtered.length === 0 && pendingInvites.length === 0 && (
+            {filteredActive.length === 0 && pendingMembers.length === 0 && pendingInvites.length === 0 && (
               <div className="text-center py-12 text-gray-400">No team members yet</div>
             )}
           </div>
