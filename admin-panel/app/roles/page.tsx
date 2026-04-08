@@ -1,5 +1,6 @@
 'use client'
-import { useEffect, useState } from 'react'
+import AdminLayout from '../admin-layout'
+mport { useEffect, useState } from 'react'
 import Link from 'next/link'
 
 const PAGES = [
@@ -124,6 +125,7 @@ export default function RolesPage() {
   }
 
   return (
+    <AdminLayout>
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center gap-3">
