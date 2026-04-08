@@ -1,5 +1,4 @@
 'use client'
-import AdminLayout from '../admin-layout'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 
