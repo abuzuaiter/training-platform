@@ -18,7 +18,7 @@ async function logAction(supabase: any, action: string, entity_type: string, ent
 export async function GET() {
   const { data, error } = await supabaseAdmin
     .from('organizations')
-    .select('*')
+    .select('*, account_manager:account_manager_id(id, full_name, email)')
     .order('created_at', { ascending: false })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   await logAction(supabaseAdmin, 'create', 'organization', data.id, { name: data.name })

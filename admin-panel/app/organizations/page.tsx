@@ -23,12 +23,19 @@ export default function OrganizationsPage() {
   const [orgs, setOrgs] = useState<Organization[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ name: '', name_ar: '', email: '', phone: '', mobile: '', admin_email: '', category: '' })
+  const [form, setForm] = useState({ name: '', name_ar: '', email: '', phone: '', mobile: '', admin_email: '', category: '', account_manager_id: '' })
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [users, setUsers] = useState<any[]>([])
 
-  useEffect(() => { loadOrgs() }, [])
+  useEffect(() => { loadOrgs(); loadUsers() }, [])
+
+  async function loadUsers() {
+    const res = await fetch('/api/users')
+    const data = await res.json()
+    setUsers(Array.isArray(data) ? data : [])
+  }
 
   async function loadOrgs() {
     setLoading(true)
@@ -151,6 +158,16 @@ export default function OrganizationsPage() {
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
                   placeholder="+97455123456" />
               </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">ACCOUNT MANAGER</label>
+                <select value={form.account_manager_id} onChange={e => setForm({...form, account_manager_id: e.target.value})}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:border-blue-400">
+                  <option value="">Select account manager...</option>
+                  {users.map(u => (
+                    <option key={u.id} value={u.id}>{u.full_name || u.email}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="flex gap-3 mt-4">
               <button onClick={handleSubmit} disabled={saving}
@@ -191,6 +208,7 @@ export default function OrganizationsPage() {
                     <div className="flex gap-3 mt-1">
                       {org.email && <span className="text-xs text-gray-400">{org.email}</span>}
                       {org.mobile && <span className="text-xs text-gray-400">{org.mobile}</span>}
+                      {org.account_manager && <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">AM: {org.account_manager.full_name || org.account_manager.email}</span>}
                     </div>
                   </div>
                 </div>
