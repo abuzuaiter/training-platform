@@ -41,7 +41,7 @@ export default function OrganizationsPage() {
     setLoading(true)
     const res = await fetch('/api/organizations')
     const data = await res.json()
-    setOrgs(data || [])
+    setOrgs(Array.isArray(data) ? data : [])
     setLoading(false)
   }
 
