@@ -1,7 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import AdminLayout from './admin-layout'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -34,7 +33,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <AdminLayout>
+    <>
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <h1 className="text-lg font-bold text-gray-900">Dashboard</h1>
         <p className="text-xs text-gray-400">Welcome to MawedQo Admin</p>
@@ -45,19 +44,19 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <div className="bg-white rounded-2xl border border-gray-200 p-5">
               <p className="text-xs font-semibold text-gray-400 mb-1">ORGANIZATIONS</p>
-              <p className="text-3xl font-bold text-blue-600">{stats.total_organizations || 0}</p>
+              <p className="text-3xl font-bold text-blue-600">{stats.totalOrgs || 0}</p>
             </div>
             <div className="bg-white rounded-2xl border border-gray-200 p-5">
               <p className="text-xs font-semibold text-gray-400 mb-1">CUSTOMERS</p>
-              <p className="text-3xl font-bold text-purple-600">{stats.total_customers || 0}</p>
+              <p className="text-3xl font-bold text-purple-600">{stats.totalCustomers || 0}</p>
             </div>
             <div className="bg-white rounded-2xl border border-gray-200 p-5">
               <p className="text-xs font-semibold text-gray-400 mb-1">REVENUE</p>
-              <p className="text-3xl font-bold text-green-600">{stats.total_revenue || 0} <span className="text-sm">QAR</span></p>
+              <p className="text-3xl font-bold text-green-600">{stats.totalRevenue || 0} <span className="text-sm">QAR</span></p>
             </div>
             <div className="bg-white rounded-2xl border border-gray-200 p-5">
               <p className="text-xs font-semibold text-gray-400 mb-1">PENDING</p>
-              <p className="text-3xl font-bold text-amber-500">{stats.pending_amount || 0} <span className="text-sm">QAR</span></p>
+              <p className="text-3xl font-bold text-amber-500">{stats.pendingRevenue || 0} <span className="text-sm">QAR</span></p>
             </div>
           </div>
         )}
@@ -69,11 +68,11 @@ export default function DashboardPage() {
               <h2 className="text-sm font-bold text-gray-900 mb-3">Organizations This Month</h2>
               <div className="flex gap-4">
                 <div>
-                  <p className="text-2xl font-bold text-green-600">{stats.renewed_orgs || 0}</p>
+                  <p className="text-2xl font-bold text-green-600">{stats.renewedOrgs?.length || 0}</p>
                   <p className="text-xs text-gray-400">Renewed</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-red-500">{stats.not_renewed_orgs || 0}</p>
+                  <p className="text-2xl font-bold text-red-500">{stats.notRenewedOrgs?.length || 0}</p>
                   <p className="text-xs text-gray-400">Not Renewed</p>
                 </div>
               </div>
@@ -82,11 +81,11 @@ export default function DashboardPage() {
               <h2 className="text-sm font-bold text-gray-900 mb-3">Customers This Month</h2>
               <div className="flex gap-4">
                 <div>
-                  <p className="text-2xl font-bold text-green-600">{stats.renewed_customers || 0}</p>
+                  <p className="text-2xl font-bold text-green-600">{stats.renewedCustomers?.length || 0}</p>
                   <p className="text-xs text-gray-400">Renewed</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-red-500">{stats.not_renewed_customers || 0}</p>
+                  <p className="text-2xl font-bold text-red-500">{stats.notRenewedCustomers?.length || 0}</p>
                   <p className="text-xs text-gray-400">Not Renewed</p>
                 </div>
               </div>
@@ -112,6 +111,6 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
-    </AdminLayout>
+    </>
   )
 }
