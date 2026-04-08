@@ -21,7 +21,8 @@ export default function LoginPage() {
     const data = await res.json()
     if (res.ok) {
       if (data.role === 'super_admin') router.push('/')
-      else if (data.role === 'org_admin') router.push(`/org/${data.organization_id}`)
+      else if (data.role === 'org_admin' || data.role === 'org_member') router.push(`/org/${data.organization_id}`)
+      else if (data.role === 'custom') router.push('/')
       else router.push('/')
     } else {
       setError(data.error || 'Invalid email or password')
