@@ -14,14 +14,41 @@ export default function OrgCustomersPage() {
   const [message, setMessage] = useState('')
   const [form, setForm] = useState({ full_name: '', email: '', mobile: '', has_guardian: false, guardian_email: '', guardian_mobile: '', notes: '' })
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [enrollments, setEnrollments] = useState<any[]>([])
 
   useEffect(() => { if (id) load() }, [id])
 
   async function load() {
     setLoading(true)
-    const res = await fetch(`/api/organizations/${id}/customers`)
-    setCustomers(await res.json() || [])
+    const [custRes, enrRes] = await Promise.all([
+      fetch(`/api/organizations/${id}/customers`),
+      fetch(`/api/enrollments?org_id=${id}`)
+    ])
+    setCustomers(await custRes.json() || [])
+    setEnrollments(enrRes.ok ? await enrRes.json() : [])
     setLoading(false)
+  }
+
+  function getEnrollment(customerId: string) {
+    return enrollments.find(e => e.customer_id === customerId && e.status === 'active')
+  }
+
+  function SessionSquares({ total, remaining }: { total: number, remaining: number }) {
+    const used = total - remaining
+    const squares = Math.min(total, 20)
+    const usedSquares = Math.round((used / total) * squares)
+    return (
+      <div>
+        <div className="flex flex-wrap gap-0.5 mb-1">
+          {Array.from({ length: squares }).map((_, i) => (
+            <div key={i} className={`w-3 h-3 rounded-sm ${i < usedSquares ? 'bg-blue-500' : 'bg-gray-200'}`} />
+          ))}
+        </div>
+        <p className={`text-xs font-medium ${remaining <= 2 ? 'text-amber-500' : 'text-gray-400'}`}>
+          {remaining} / {total} remaining
+        </p>
+      </div>
+    )
   }
 
   async function handleSubmit() {
@@ -151,6 +178,14 @@ export default function OrgCustomersPage() {
                     <td className="px-6 py-4">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.status === 'active' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>{c.status}</span>
                       {c.has_guardian && <span className="ml-1 text-xs bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full">Guardian</span>}
+                    </td>
+                    <td className="px-6 py-4">
+                      {(() => {
+                        const enr = getEnrollment(c.id)
+                        if (!enr || enr.sessions_remaining === null) return <span className="text-xs text-gray-300">—</span>
+                        const total = enr.packages?.sessions_count || enr.sessions_remaining
+                        return <SessionSquares total={total} remaining={enr.sessions_remaining} />
+                      })()}
                     </td>
                     <td className="px-6 py-4">
                       {deleteConfirm === c.id ? (
