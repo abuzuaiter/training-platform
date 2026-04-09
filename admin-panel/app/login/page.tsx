@@ -104,8 +104,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          Don't have an account?{' '}
-          <span className="text-blue-600 font-semibold cursor-pointer hover:underline">Create one</span>
+
         </p>
                 <p className="text-center text-sm text-gray-400 mt-4">
             Don't have an account?{' '}
