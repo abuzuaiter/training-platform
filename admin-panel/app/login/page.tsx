@@ -107,7 +107,11 @@ export default function LoginPage() {
           Don't have an account?{' '}
           <span className="text-blue-600 font-semibold cursor-pointer hover:underline">Create one</span>
         </p>
-      </div>
+                <p className="text-center text-sm text-gray-400 mt-4">
+            Don't have an account?{' '}
+            <a href="/signup" className="text-blue-600 font-semibold hover:underline">Sign up</a>
+          </p>
+        </div>
     </div>
   )
 }
