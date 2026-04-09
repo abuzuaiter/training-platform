@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabaseAdmin
     .from('attendance')
-    .select('*, customers(full_name, customer_code, mobile), enrollments(sessions_remaining, plans(name, type, absence_policy))')
+    .select('*, customers(full_name, customer_code, mobile), enrollments(id, sessions_remaining, package_id, packages(name, type, absence_policy))')
     .order('created_at', { ascending: true })
 
   if (session_id) query = query.eq('session_id', session_id)
@@ -76,7 +76,7 @@ export async function PATCH(req: NextRequest) {
         .select('*, plans(type, sessions_count, enable_notification)')
         .eq('id', enrollment_id).single()
 
-      if (enrollment && enrollment.plans?.type === 'sessions' && enrollment.sessions_remaining !== null) {
+      if (enrollment && enrollment.packages?.type === 'sessions' && enrollment.sessions_remaining !== null) {
         const newRemaining = Math.max(0, enrollment.sessions_remaining - 1)
         const newStatus = newRemaining === 0 ? 'completed' : 'active'
 
