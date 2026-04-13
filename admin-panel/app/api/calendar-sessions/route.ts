@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabaseAdmin
     .from('calendar_sessions')
-    .select('*, organizations(name), calendar_bookings(id, status, customers(full_name))')
+    .select('*, organizations(name), calendar_bookings(id, status, enrollment_id, customer_id, customers(full_name))')
     .order('start_time', { ascending: true })
 
   if (org_id) query = query.eq('organization_id', org_id)

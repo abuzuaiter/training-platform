@@ -144,15 +144,15 @@ export default function OrgDashboardPage() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <button onClick={() => markAttendance(session.id, booking.customer_id, attRecord?.enrollment_id || '', 'attended')} disabled={saving}
+                        <button onClick={() => markAttendance(session.id, booking.customer_id, booking.enrollment_id || attRecord?.enrollment_id || '', 'attended')} disabled={saving}
                           className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${currentStatus === 'attended' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
                           ✓ حضر
                         </button>
-                        <button onClick={() => markAttendance(session.id, booking.customer_id, attRecord?.enrollment_id || '', 'absent')} disabled={saving}
+                        <button onClick={() => markAttendance(session.id, booking.customer_id, booking.enrollment_id || attRecord?.enrollment_id || '', 'absent')} disabled={saving}
                           className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${currentStatus === 'absent' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}>
                           ✗ غاب
                         </button>
-                        <button onClick={() => markAttendance(session.id, booking.customer_id, attRecord?.enrollment_id || '', 'rescheduled')} disabled={saving}
+                        <button onClick={() => markAttendance(session.id, booking.customer_id, booking.enrollment_id || attRecord?.enrollment_id || '', 'rescheduled')} disabled={saving}
                           className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${currentStatus === 'rescheduled' ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-600 hover:bg-amber-100'}`}>
                           ↻ تأجيل
                         </button>
