@@ -73,7 +73,7 @@ export async function PATCH(req: NextRequest) {
     if (status === 'attended' && enrollment_id) {
       const { data: enrollment } = await supabaseAdmin
         .from('enrollments')
-        .select('*, plans(type, sessions_count, enable_notification)')
+        .select('*, packages(type, sessions_count, enable_notification, absence_policy)')
         .eq('id', enrollment_id).single()
 
       if (enrollment && enrollment.packages?.type === 'sessions' && enrollment.sessions_remaining !== null) {
@@ -85,7 +85,7 @@ export async function PATCH(req: NextRequest) {
           .eq('id', enrollment_id)
 
         // Notification check (2 sessions remaining)
-        if (enrollment.plans?.enable_notification && newRemaining <= 2 && newRemaining > 0) {
+        if (enrollment.packages?.enable_notification && newRemaining <= 2 && newRemaining > 0) {
           await supabaseAdmin.from('audit_logs').insert({
             user_email: 'system', action: 'notification', entity_type: 'enrollment',
             entity_id: enrollment_id,
