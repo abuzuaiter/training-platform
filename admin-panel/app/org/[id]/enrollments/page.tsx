@@ -78,7 +78,9 @@ export default function OrgEnrollmentsPage() {
     setBooking(true)
 
     const pkg = packages.find(p => p.id === selectedEnrollment.package_id)
-    const totalSessions = pkg?.type === 'sessions' ? pkg.sessions_count : 90
+    const totalSessions = pkg?.type === 'sessions' 
+      ? (pkg.sessions_count || 0) 
+      : pkg?.type === 'single' ? 1 : 90
     const QATAR_OFFSET = 3 * 60 * 60 * 1000
     const baseDate = scheduleStartDate
       ? new Date(scheduleStartDate)
