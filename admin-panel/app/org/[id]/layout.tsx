@@ -11,11 +11,32 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
   const [org, setOrg] = useState<any>(null)
   const [plan, setPlan] = useState<any>(null)
 
+  const [memberRole, setMemberRole] = useState<string>('admin')
+
   useEffect(() => {
     if (!id) return
     fetch(`/api/organizations/${id}`).then(r => r.ok ? r.json() : null).then(d => setOrg(d))
     fetch(`/api/organizations/${id}/plans`).then(r => r.ok ? r.json() : null).then(d => setPlan(d?.[0] || null))
+    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => {
+      if (d?.permissions?.member_role) setMemberRole(d.permissions.member_role)
+      else if (d?.role === 'org_admin') setMemberRole('admin')
+    })
   }, [id])
+
+  const allowedPages: Record<string, string[]> = {
+    admin:        ['dashboard','calendar','sessions','customers','enrollments','packages','members','invitations'],
+    coach:        ['dashboard','calendar','customers'],
+    trainer:      ['dashboard','calendar','customers'],
+    receptionist: ['dashboard','customers','enrollments'],
+    doctor:       ['dashboard','customers'],
+    therapist:    ['dashboard','customers'],
+    other:        ['dashboard'],
+  }
+
+  function canAccess(page: string) {
+    const allowed = allowedPages[memberRole] || ['dashboard']
+    return allowed.includes(page)
+  }
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' })
@@ -67,7 +88,10 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
-          {navItems.map(item => {
+          {navItems.filter(item => {
+            const page = item.href.split('/').pop() || 'dashboard'
+            return canAccess(page)
+          }).map(item => {
             const isActive = pathname === item.href || (item.href !== `/org/${id}/dashboard` && pathname.startsWith(item.href))
             return (
               <Link key={item.href} href={item.href}>

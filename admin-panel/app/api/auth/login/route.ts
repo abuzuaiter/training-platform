@@ -64,6 +64,7 @@ export async function POST(req: NextRequest) {
         role = 'org_member'
         organization_id = pendingMember.organization_id
         permissions = { member_role: pendingMember.role }
+        permissions = { member_role: pendingMember.role }
       } else {
         // Check if already active member
         const { data: activeMember } = await supabaseAdmin
