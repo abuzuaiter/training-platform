@@ -78,6 +78,7 @@ export default function OrgEnrollmentsPage() {
     setBooking(true)
 
     const pkg = packages.find(p => p.id === selectedEnrollment.package_id)
+    console.log('PKG:', pkg, 'totalSessions:', pkg?.sessions_count, 'type:', pkg?.type)
     const totalSessions = pkg?.type === 'sessions' 
       ? (pkg.sessions_count || 0) 
       : pkg?.type === 'single' ? 1 : 90
