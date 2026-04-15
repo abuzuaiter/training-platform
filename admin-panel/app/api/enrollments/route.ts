@@ -19,7 +19,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { customer_id, package_id, session_id, organization_id, start_date, payment_status, paid_at, sessions_remaining, sessions_attended, status } = body
+  const { customer_id, package_id, session_id, organization_id, start_date, payment_status, paid_at, sessions_attended, status } = body
+  const sessionsRem = body.sessions_remaining
 
   if (!customer_id || !package_id || !organization_id) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
     start_date: start_date || new Date().toISOString().split('T')[0],
     payment_status: payment_status || 'pending',
     paid_at: paid_at || null,
-    sessions_remaining: sessions_remaining || null,
+    sessions_remaining: sessionsRem || null,
     sessions_attended: sessions_attended || 0,
     status: status || 'active'
   }).select().single()
