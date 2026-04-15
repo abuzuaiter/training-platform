@@ -15,7 +15,6 @@ export async function GET(req: NextRequest) {
   let query = supabaseAdmin.from('attendance').select('*, enrollments(id, customer_id, customers(full_name))')
 
   if (enrollment_id) query = query.eq('enrollment_id', enrollment_id)
-  if (session_id) query = query.eq('session_id', session_id)
 
   const { data, error } = await query.order('session_date', { ascending: false })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

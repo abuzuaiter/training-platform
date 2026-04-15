@@ -43,7 +43,7 @@ export default function OrgDashboardPage() {
     // Get attendance for today's sessions
     const sessionsWithAtt = []
     for (const sess of todayCalSessions) {
-      const attRes = await fetch(`/api/attendance?session_id=${sess.id}`)
+      const attRes = await fetch(`/api/attendance?org_id=${id}`)
       const attData = attRes.ok ? await attRes.json() : []
       sessionsWithAtt.push({ ...sess, attendanceList: attData })
     }
