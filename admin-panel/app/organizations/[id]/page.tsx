@@ -156,6 +156,19 @@ export default function ManageOrgPage() {
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" />
             </div>
           </div>
+            {/* Logo */}
+            <div className="md:col-span-2 mt-2">
+              <label className="block text-xs font-semibold text-gray-500 mb-1">LOGO</label>
+              <div className="flex items-center gap-4">
+                {form.logo_url && (
+                  <img src={form.logo_url} alt="Logo" className="w-16 h-16 rounded-xl object-contain border border-gray-200 bg-white p-1" />
+                )}
+                <label className="cursor-pointer border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 transition">
+                  {uploadingLogo ? 'Uploading...' : 'Upload Logo'}
+                  <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" disabled={uploadingLogo} />
+                </label>
+              </div>
+            </div>
           <div className="flex gap-3 mt-4">
             <button onClick={handleSave} disabled={saving}
               className="bg-blue-600 text-white px-6 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition">
