@@ -70,7 +70,7 @@ export default function OrgEnrollmentsPage() {
         start_date: form.start_date,
         payment_status: form.payment_status,
         paid_at: form.payment_status === 'paid' ? new Date().toISOString() : null,
-        sessions_remaining: pkg?.total_sessions || pkg?.sessions_count || 0,
+        sessions_remaining: pkg?.sessions_count || pkg?.total_sessions || 0,
         sessions_attended: 0,
         status: 'active'
       })
@@ -96,7 +96,7 @@ export default function OrgEnrollmentsPage() {
     const template = sessions.find(s => s.id === sessionId)
     if (!template || !pkg) return
 
-    const totalSessions = pkg.total_sessions || pkg.sessions_count || 0
+    const totalSessions = pkg.sessions_count || pkg.total_sessions || 0
     if (totalSessions === 0) return
 
     const QATAR_OFFSET = 3 * 60 * 60 * 1000
