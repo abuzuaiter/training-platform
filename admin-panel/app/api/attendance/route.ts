@@ -59,12 +59,12 @@ export async function POST(req: NextRequest) {
   if (attended) {
     const { data: enr } = await supabaseAdmin
       .from('enrollments')
-      .select('sessions_attended, sessions_remaining, packages(total_sessions, sessions_count, absence_policy, notify_before_end)')
+      .select('sessions_attended, sessions_remaining, packages(sessions_count, absence_policy, enable_notification)')
       .eq('id', enrollment_id).single()
 
     if (enr) {
       const newAttended = (enr.sessions_attended || 0) + 1
-      const total = enr.packages?.total_sessions || enr.packages?.sessions_count || 0
+      const total = enr.packages?.sessions_count || 0
       const newRemaining = Math.max(0, total - newAttended)
       const newStatus = newRemaining === 0 ? 'completed' : 'active'
 
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
         .eq('id', enrollment_id)
 
       // Notify if 2 sessions remaining
-      if (enr.packages?.notify_before_end && newRemaining <= 2 && newRemaining > 0) {
+      if (enr.packages?.enable_notification && newRemaining <= 2 && newRemaining > 0) {
         await supabaseAdmin.from('audit_logs').insert({
           user_email: 'system', action: 'notification', entity_type: 'enrollment',
           entity_id: enrollment_id,
