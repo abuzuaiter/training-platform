@@ -50,6 +50,7 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
     { href: `/org/${id}/customers`, label: 'Customers' },
     { href: `/org/${id}/enrollments`, label: 'Enrollments' },
     { href: `/org/${id}/packages`, label: 'Packages' },
+    { href: `/org/${id}/invoices`, label: 'Invoices' },
     { href: `/org/${id}/members`, label: 'Team' },
 
   ]

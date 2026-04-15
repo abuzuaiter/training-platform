@@ -137,6 +137,16 @@ export default function OrgEnrollmentsPage() {
       }
     }
 
+    // Create invoice
+    await fetch('/api/org-invoices', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        organization_id: id,
+        enrollment_id: newEnrollment.id,
+        customer_id: form.customer_id,
+        amount: selectedPkg?.price || pkg?.price || 0
+      })
+    })
     setMessage(`Enrollment created! ${totalSessions} sessions generated.`)
     setShowForm(false)
     setForm({ customer_id: '', package_id: '', session_id: '', start_date: '', payment_status: 'pending' })
