@@ -18,10 +18,11 @@ export default function ManageOrgPage() {
   const [orgPlan, setOrgPlan] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
   const [message, setMessage] = useState('')
   const [form, setForm] = useState({
     name: '', name_ar: '', email: '', phone: '', mobile: '',
-    category: '', account_manager_id: ''
+    category: '', account_manager_id: '', logo_url: ''
   })
 
   useEffect(() => { if (id) loadAll() }, [id])
@@ -44,7 +45,8 @@ export default function ManageOrgPage() {
         phone: orgData.phone || '',
         mobile: orgData.mobile || '',
         category: orgData.category || '',
-        account_manager_id: orgData.account_manager_id || ''
+        account_manager_id: orgData.account_manager_id || '',
+        logo_url: orgData.logo_url || ''
       })
     }
     const usersData = await usersRes.json()
@@ -54,6 +56,23 @@ export default function ManageOrgPage() {
     const orgPlanData = await orgPlanRes.json()
     setOrgPlan(Array.isArray(orgPlanData) ? orgPlanData[0] : null)
     setLoading(false)
+  }
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingLogo(true)
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('org_id', id)
+    const res = await fetch('/api/upload-logo', { method: 'POST', body: formData })
+    if (res.ok) {
+      const { url } = await res.json()
+      setForm(prev => ({ ...prev, logo_url: url }))
+      setMessage('Logo uploaded!')
+      setTimeout(() => setMessage(''), 3000)
+    }
+    setUploadingLogo(false)
   }
 
   async function handleSave() {
