@@ -60,17 +60,16 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
         {/* Logo */}
         <div className="px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <rect x="3" y="4" width="18" height="18" rx="3" stroke="white" strokeWidth="2"/>
-                <path d="M3 9h18" stroke="white" strokeWidth="2"/>
-                <path d="M8 2v4M16 2v4" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-                <path d="M7 14l3 3 7-7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
+            {org?.logo_url ? (
+              <img src={org.logo_url} alt="Logo" className="w-10 h-10 rounded-xl object-contain border border-gray-100 bg-white p-0.5" />
+            ) : (
+              <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">
+                {org?.name?.charAt(0) || 'O'}
+              </div>
+            )}
             <div>
-              <p className="text-sm font-bold text-gray-900 leading-none">mawid</p>
-              <p className="text-xs text-gray-400 leading-none">موعد</p>
+              <p className="text-sm font-bold text-gray-900 leading-none truncate max-w-32">{org?.name || 'Organization'}</p>
+              {org?.name_ar && <p className="text-xs text-gray-400 leading-none">{org.name_ar}</p>}
             </div>
           </div>
         </div>
