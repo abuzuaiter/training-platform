@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   const org_id = searchParams.get('org_id')
   const customer_id = searchParams.get('customer_id')
   let query = supabaseAdmin.from('enrollments')
-    .select('*, customers(full_name, customer_code, mobile), packages(name, price, total_sessions, sessions_count, absence_policy, notify_before_end)')
+    .select('*, customers(full_name, customer_code, mobile), packages(name, price, sessions_count, absence_policy, notify_before_end, enable_notification, capacity)')
     .order('created_at', { ascending: false })
   if (org_id) query = query.eq('organization_id', org_id)
   if (customer_id) query = query.eq('customer_id', customer_id)
