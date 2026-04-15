@@ -144,7 +144,7 @@ export default function OrgEnrollmentsPage() {
         organization_id: id,
         enrollment_id: newEnrollment.id,
         customer_id: form.customer_id,
-        amount: selectedPkg?.price || pkg?.price || 0
+        amount: pkg?.price || 0
       })
     })
     setMessage(`Enrollment created! ${totalSessions} sessions generated.`)
