@@ -34,7 +34,7 @@ export default function OrgPackagesPage() {
         ...form,
         organization_id: id,
         price: parseFloat(form.price),
-        total_sessions: parseInt(form.total_sessions),
+        sessions_count: parseInt(form.total_sessions),
         capacity: form.capacity ? parseInt(form.capacity) : null,
       })
     })
@@ -64,7 +64,7 @@ export default function OrgPackagesPage() {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: form.name, price: parseFloat(form.price),
-        total_sessions: parseInt(form.total_sessions),
+        sessions_count: parseInt(form.total_sessions),
         capacity: form.capacity ? parseInt(form.capacity) : null,
         absence_policy: form.absence_policy,
         notify_before_end: form.notify_before_end,

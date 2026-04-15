@@ -76,8 +76,10 @@ export default function OrgEnrollmentsPage() {
       })
     })
 
+    console.log('Enrollment res status:', res.status, res.ok)
     if (res.ok) {
       const newEnrollment = await res.json()
+      console.log('New enrollment:', newEnrollment)
       // Generate calendar sessions
       await generateSessions(form.session_id, form.customer_id, newEnrollment.id, form.start_date, pkg)
       setMessage('Enrollment created!')
