@@ -10,9 +10,9 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const enrollment_id = searchParams.get('enrollment_id')
   const org_id = searchParams.get('org_id')
-  const session_id = searchParams.get('session_id')
 
-  let query = supabaseAdmin.from('attendance').select('*, enrollments(id, customer_id, customers(full_name))')
+  let query = supabaseAdmin.from('attendance')
+    .select('*, enrollments(id, customer_id, customers(full_name))')
 
   if (enrollment_id) query = query.eq('enrollment_id', enrollment_id)
 
@@ -32,10 +32,12 @@ export async function POST(req: NextRequest) {
   // Check if already exists
   const { data: existing } = await supabaseAdmin
     .from('attendance')
-    .select('id')
+    .select('id, attended')
     .eq('enrollment_id', enrollment_id)
     .eq('session_date', session_date)
     .maybeSingle()
+
+  const prevAttended = existing?.attended || false
 
   if (existing) {
     // Update existing
@@ -45,6 +47,12 @@ export async function POST(req: NextRequest) {
       .eq('id', existing.id)
       .select().single()
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    // Adjust sessions if changed
+    if (prevAttended !== attended) {
+      await adjustSessions(enrollment_id, attended)
+    }
+
     return NextResponse.json(data)
   }
 
@@ -55,33 +63,36 @@ export async function POST(req: NextRequest) {
     .select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Update sessions_attended in enrollment
   if (attended) {
-    const { data: enr } = await supabaseAdmin
-      .from('enrollments')
-      .select('sessions_attended, sessions_remaining, packages(sessions_count, absence_policy, enable_notification)')
-      .eq('id', enrollment_id).single()
-
-    if (enr) {
-      const newAttended = (enr.sessions_attended || 0) + 1
-      const total = enr.packages?.sessions_count || 0
-      const newRemaining = Math.max(0, total - newAttended)
-      const newStatus = newRemaining === 0 ? 'completed' : 'active'
-
-      await supabaseAdmin.from('enrollments')
-        .update({ sessions_attended: newAttended, sessions_remaining: newRemaining, status: newStatus })
-        .eq('id', enrollment_id)
-
-      // Notify if 2 sessions remaining
-      if (enr.packages?.enable_notification && newRemaining <= 2 && newRemaining > 0) {
-        await supabaseAdmin.from('audit_logs').insert({
-          user_email: 'system', action: 'notification', entity_type: 'enrollment',
-          entity_id: enrollment_id,
-          details: { message: `${newRemaining} session(s) remaining`, sessions_remaining: newRemaining }
-        })
-      }
-    }
+    await adjustSessions(enrollment_id, true)
   }
 
   return NextResponse.json(data)
+}
+
+async function adjustSessions(enrollment_id: string, attended: boolean) {
+  const { data: enr } = await supabaseAdmin
+    .from('enrollments')
+    .select('sessions_attended, sessions_remaining, packages(sessions_count, enable_notification)')
+    .eq('id', enrollment_id).single()
+
+  if (!enr) return
+
+  const total = enr.packages?.sessions_count || 0
+  const change = attended ? 1 : -1
+  const newAttended = Math.max(0, (enr.sessions_attended || 0) + change)
+  const newRemaining = Math.max(0, total - newAttended)
+  const newStatus = newRemaining === 0 ? 'completed' : 'active'
+
+  await supabaseAdmin.from('enrollments')
+    .update({ sessions_attended: newAttended, sessions_remaining: newRemaining, status: newStatus })
+    .eq('id', enrollment_id)
+
+  if (attended && enr.packages?.enable_notification && newRemaining <= 2 && newRemaining > 0) {
+    await supabaseAdmin.from('audit_logs').insert({
+      user_email: 'system', action: 'notification', entity_type: 'enrollment',
+      entity_id: enrollment_id,
+      details: { message: `${newRemaining} session(s) remaining` }
+    })
+  }
 }
