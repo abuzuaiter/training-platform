@@ -135,6 +135,10 @@ export default function OrgEnrollmentsPage() {
             body: JSON.stringify({ session_id: sess.id, customer_id: customerId, organization_id: id, enrollment_id: enrollmentId })
           })
           count++
+        } else {
+          const errData = await sessRes.json()
+          console.error('Session creation failed:', errData)
+          break
         }
       }
       current.setDate(current.getDate() + 1)
