@@ -8,106 +8,81 @@ const supabaseAdmin = createClient(
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
-  const session_id = searchParams.get('session_id')
+  const enrollment_id = searchParams.get('enrollment_id')
   const org_id = searchParams.get('org_id')
+  const session_id = searchParams.get('session_id')
 
-  let query = supabaseAdmin
-    .from('attendance')
-    .select('*, customers(full_name, customer_code, mobile), enrollments(id, sessions_remaining, package_id, packages(name, type, absence_policy))')
-    .order('created_at', { ascending: true })
+  let query = supabaseAdmin.from('attendance').select('*, enrollments(id, customer_id, customers(full_name))')
 
+  if (enrollment_id) query = query.eq('enrollment_id', enrollment_id)
   if (session_id) query = query.eq('session_id', session_id)
-  if (org_id) query = query.eq('organization_id', org_id)
 
-  const { data, error } = await query
+  const { data, error } = await query.order('session_date', { ascending: false })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data || [])
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { session_id, customer_id, organization_id, enrollment_id, booking_id } = body
+  const { enrollment_id, session_date, attended } = body
 
-  if (!session_id || !customer_id || !organization_id) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  if (!enrollment_id || !session_date) {
+    return NextResponse.json({ error: 'enrollment_id and session_date are required' }, { status: 400 })
   }
 
-  // Check if attendance already exists
+  // Check if already exists
   const { data: existing } = await supabaseAdmin
     .from('attendance')
-    .select('id').eq('session_id', session_id).eq('customer_id', customer_id).maybeSingle()
+    .select('id')
+    .eq('enrollment_id', enrollment_id)
+    .eq('session_date', session_date)
+    .maybeSingle()
 
-  if (existing) return NextResponse.json({ error: 'Attendance already recorded' }, { status: 400 })
-
-  const { data, error } = await supabaseAdmin
-    .from('attendance')
-    .insert({ session_id, customer_id, organization_id, enrollment_id: enrollment_id || null, booking_id: booking_id || null, status: 'pending' })
-    .select('*, customers(full_name)').single()
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
-}
-
-export async function PATCH(req: NextRequest) {
-  const body = await req.json()
-  const { attendance_records } = body
-
-  if (!attendance_records || !Array.isArray(attendance_records)) {
-    return NextResponse.json({ error: 'Invalid data' }, { status: 400 })
-  }
-
-  const results = []
-
-  for (const record of attendance_records) {
-    const { id, status, enrollment_id } = record
-
+  if (existing) {
+    // Update existing
     const { data, error } = await supabaseAdmin
       .from('attendance')
-      .update({ status, marked_at: new Date().toISOString() })
-      .eq('id', id).select().single()
+      .update({ attended })
+      .eq('id', existing.id)
+      .select().single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json(data)
+  }
 
-    if (error) continue
-    results.push(data)
+  // Create new
+  const { data, error } = await supabaseAdmin
+    .from('attendance')
+    .insert({ enrollment_id, session_date, attended: attended || false })
+    .select().single()
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    // If attended and has enrollment with sessions plan — deduct
-    if (status === 'attended' && enrollment_id) {
-      const { data: enrollment } = await supabaseAdmin
-        .from('enrollments')
-        .select('*, packages(type, sessions_count, enable_notification, absence_policy)')
-        .eq('id', enrollment_id).single()
+  // Update sessions_attended in enrollment
+  if (attended) {
+    const { data: enr } = await supabaseAdmin
+      .from('enrollments')
+      .select('sessions_attended, sessions_remaining, packages(total_sessions, sessions_count, absence_policy, notify_before_end)')
+      .eq('id', enrollment_id).single()
 
-      if (enrollment && enrollment.packages?.type === 'sessions' && enrollment.sessions_remaining !== null) {
-        const newRemaining = Math.max(0, enrollment.sessions_remaining - 1)
-        const newStatus = newRemaining === 0 ? 'completed' : 'active'
+    if (enr) {
+      const newAttended = (enr.sessions_attended || 0) + 1
+      const total = enr.packages?.total_sessions || enr.packages?.sessions_count || 0
+      const newRemaining = Math.max(0, total - newAttended)
+      const newStatus = newRemaining === 0 ? 'completed' : 'active'
 
-        await supabaseAdmin.from('enrollments')
-          .update({ sessions_remaining: newRemaining, status: newStatus })
-          .eq('id', enrollment_id)
+      await supabaseAdmin.from('enrollments')
+        .update({ sessions_attended: newAttended, sessions_remaining: newRemaining, status: newStatus })
+        .eq('id', enrollment_id)
 
-        // Notification check (2 sessions remaining)
-        if (enrollment.packages?.enable_notification && newRemaining <= 2 && newRemaining > 0) {
-          await supabaseAdmin.from('audit_logs').insert({
-            user_email: 'system', action: 'notification', entity_type: 'enrollment',
-            entity_id: enrollment_id,
-            details: { message: `Customer has ${newRemaining} session(s) remaining`, sessions_remaining: newRemaining }
-          })
-        }
-      }
-    }
-
-    // If rescheduled and absence_policy is reschedule — don't deduct
-    if (status === 'rescheduled' && enrollment_id) {
-      const { data: enrollment } = await supabaseAdmin
-        .from('enrollments').select('*, plans(absence_policy)').eq('id', enrollment_id).single()
-
-      if (enrollment?.plans?.absence_policy === 'deduct') {
-        const newRemaining = Math.max(0, (enrollment.sessions_remaining || 1) - 1)
-        await supabaseAdmin.from('enrollments')
-          .update({ sessions_remaining: newRemaining })
-          .eq('id', enrollment_id)
+      // Notify if 2 sessions remaining
+      if (enr.packages?.notify_before_end && newRemaining <= 2 && newRemaining > 0) {
+        await supabaseAdmin.from('audit_logs').insert({
+          user_email: 'system', action: 'notification', entity_type: 'enrollment',
+          entity_id: enrollment_id,
+          details: { message: `${newRemaining} session(s) remaining`, sessions_remaining: newRemaining }
+        })
       }
     }
   }
 
-  return NextResponse.json({ success: true, updated: results.length })
+  return NextResponse.json(data)
 }

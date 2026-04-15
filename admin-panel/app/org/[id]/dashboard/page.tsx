@@ -1,11 +1,12 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
+import Link from 'next/link'
 
 export default function OrgDashboardPage() {
   const params = useParams()
   const id = params.id as string
-  const [stats, setStats] = useState({ active: 0, expiring: 0, expired: 0 })
+  const [stats, setStats] = useState({ active: 0, expiring: 0, completed: 0 })
   const [todaySessions, setTodaySessions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -15,23 +16,33 @@ export default function OrgDashboardPage() {
 
   async function loadAll() {
     setLoading(true)
-    const todayStr = new Date().toISOString().split('T')[0]
+    const QATAR_OFFSET = 3 * 60 * 60 * 1000
+    const now = new Date()
+    const todayQatar = new Date(now.getTime() + QATAR_OFFSET)
+    const todayStr = todayQatar.toISOString().split('T')[0]
 
     const [enrollRes, sessRes] = await Promise.all([
       fetch(`/api/enrollments?org_id=${id}`),
-      fetch(`/api/calendar-sessions?org_id=${id}&from=${todayStr}T00:00:00&to=${todayStr}T23:59:59`)
+      fetch(`/api/calendar-sessions?org_id=${id}`)
     ])
 
     const enrollData = enrollRes.ok ? await enrollRes.json() : []
-    const sessData = sessRes.ok ? await sessRes.json() : []
+    const sessData = Array.isArray(sessRes.ok ? await sessRes.json() : []) ? await (await fetch(`/api/calendar-sessions?org_id=${id}`)).json() : []
 
     const active = enrollData.filter((e: any) => e.status === 'active').length
-    const expired = enrollData.filter((e: any) => e.status === 'completed' || e.status === 'cancelled').length
+    const completed = enrollData.filter((e: any) => e.status === 'completed').length
     const expiring = enrollData.filter((e: any) => e.status === 'active' && e.sessions_remaining !== null && e.sessions_remaining <= 2).length
-    setStats({ active, expiring, expired })
+    setStats({ active, expiring, completed })
 
+    // Filter today's sessions
+    const todayCalSessions = (Array.isArray(sessData) ? sessData : []).filter((s: any) => {
+      const sessDate = new Date(new Date(s.start_time).getTime() + QATAR_OFFSET)
+      return sessDate.toISOString().split('T')[0] === todayStr
+    })
+
+    // Get attendance for today's sessions
     const sessionsWithAtt = []
-    for (const sess of sessData) {
+    for (const sess of todayCalSessions) {
       const attRes = await fetch(`/api/attendance?session_id=${sess.id}`)
       const attData = attRes.ok ? await attRes.json() : []
       sessionsWithAtt.push({ ...sess, attendanceList: attData })
@@ -40,130 +51,110 @@ export default function OrgDashboardPage() {
     setLoading(false)
   }
 
-  async function markAttendance(sessionId: string, customerId: string, enrollmentId: string, status: string) {
+  async function markAttendance(sessionId: string, customerId: string, enrollmentId: string, attended: boolean) {
     setSaving(true)
-    const session = todaySessions.find(s => s.id === sessionId)
-    const existing = session?.attendanceList?.find((a: any) => a.customer_id === customerId)
+    const QATAR_OFFSET = 3 * 60 * 60 * 1000
+    const todayStr = new Date(new Date().getTime() + QATAR_OFFSET).toISOString().split('T')[0]
 
-    if (existing) {
-      await fetch('/api/attendance', {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ attendance_records: [{ id: existing.id, status, enrollment_id: enrollmentId }] })
-      })
-    } else {
-      const createRes = await fetch('/api/attendance', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId, customer_id: customerId, organization_id: id, enrollment_id: enrollmentId || null })
-      })
-      if (createRes.ok) {
-        const newAtt = await createRes.json()
-        await fetch('/api/attendance', {
-          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ attendance_records: [{ id: newAtt.id, status, enrollment_id: enrollmentId }] })
-        })
-      }
-    }
+    await fetch('/api/attendance', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enrollment_id: enrollmentId, session_date: todayStr, attended })
+    })
 
-    setMessage('Attendance marked!')
-    setTimeout(() => setMessage(''), 3000)
+    setMessage(attended ? 'Marked as attended!' : 'Marked as absent!')
+    setTimeout(() => setMessage(''), 2000)
     loadAll()
     setSaving(false)
   }
 
-  const QATAR_OFFSET = 3 * 60
-  function formatTime(dateStr: string) {
-    const d = new Date(dateStr)
-    return new Date(d.getTime() + QATAR_OFFSET * 60 * 1000).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' })
-  }
-
-  const statusColors: Record<string, string> = {
-    attended: 'bg-green-100 text-green-700',
-    absent: 'bg-red-100 text-red-600',
-    rescheduled: 'bg-amber-100 text-amber-700',
-    pending: 'bg-gray-100 text-gray-500',
-  }
+  const QATAR_OFFSET = 3 * 60 * 60 * 1000
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <h1 className="text-lg font-bold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-400">{new Date().toLocaleDateString('en', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
       </div>
 
       <div className="max-w-4xl mx-auto px-6 py-8">
-        {message && <div className="mb-4 px-4 py-3 rounded-xl bg-green-50 text-green-700 text-sm font-medium">{message}</div>}
+        {message && (
+          <div className="mb-4 px-4 py-3 rounded-xl bg-green-50 text-green-700 text-sm font-medium">{message}</div>
+        )}
 
+        {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="bg-white rounded-2xl border border-gray-200 p-5 text-center">
-            <p className="text-3xl font-bold text-green-600">{stats.active}</p>
-            <p className="text-xs text-gray-500 mt-1">Active Enrollments</p>
-          </div>
-          <div className="bg-white rounded-2xl border border-amber-200 p-5 text-center">
-            <p className="text-3xl font-bold text-amber-500">{stats.expiring}</p>
-            <p className="text-xs text-gray-500 mt-1">Expiring Soon</p>
-            <p className="text-xs text-amber-400 mt-0.5">2 sessions left</p>
+            <p className="text-3xl font-bold text-blue-600">{stats.active}</p>
+            <p className="text-xs text-gray-400 mt-1">Active Enrollments</p>
           </div>
           <div className="bg-white rounded-2xl border border-gray-200 p-5 text-center">
-            <p className="text-3xl font-bold text-red-500">{stats.expired}</p>
-            <p className="text-xs text-gray-500 mt-1">Completed</p>
+            <p className="text-3xl font-bold text-amber-500">{stats.expiring}</p>
+            <p className="text-xs text-gray-400 mt-1">Expiring Soon</p>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-200 p-5 text-center">
+            <p className="text-3xl font-bold text-green-600">{stats.completed}</p>
+            <p className="text-xs text-gray-400 mt-1">Completed</p>
           </div>
         </div>
 
-        <h2 className="text-base font-bold text-gray-900 mb-4">📅 Today's Sessions</h2>
-
-        {loading ? (
-          <div className="text-center py-12 text-gray-400">Loading...</div>
-        ) : todaySessions.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center text-gray-400">No sessions today</div>
-        ) : todaySessions.map(session => (
-          <div key={session.id} className="bg-white rounded-2xl border border-gray-200 mb-4 overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-gray-900">{session.title}</h3>
-                <p className="text-xs text-gray-400">{formatTime(session.start_time)} — {formatTime(session.end_time)}</p>
-              </div>
-              <span className="text-sm text-gray-500 font-medium">{session.booked_count}/{session.capacity}</span>
-            </div>
-
-            {!session.calendar_bookings?.length ? (
-              <div className="px-5 py-4 text-sm text-gray-400">No bookings yet</div>
-            ) : (
-              <div className="divide-y divide-gray-50">
-                {session.calendar_bookings.map((booking: any) => {
-                  const attRecord = session.attendanceList?.find((a: any) => a.customer_id === booking.customer_id)
-                  const currentStatus = attRecord?.status || 'pending'
-                  return (
-                    <div key={booking.id} className="px-5 py-3 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-sm">
-                          {booking.customers?.full_name?.charAt(0).toUpperCase() || '?'}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{booking.customers?.full_name}</p>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[currentStatus]}`}>{currentStatus}</span>
-                        </div>
+        {/* Today's Sessions */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+          <h2 className="text-base font-bold text-gray-900 mb-4">Today's Sessions</h2>
+          {loading ? (
+            <p className="text-sm text-gray-400">Loading...</p>
+          ) : todaySessions.length === 0 ? (
+            <p className="text-sm text-gray-400">No sessions today</p>
+          ) : (
+            <div className="space-y-4">
+              {todaySessions.map(session => {
+                const startTime = new Date(new Date(session.start_time).getTime() + QATAR_OFFSET)
+                return (
+                  <div key={session.id} className="border border-gray-100 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="font-semibold text-gray-900">{session.title}</p>
+                        <p className="text-xs text-gray-400">
+                          {startTime.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
                       </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => markAttendance(session.id, booking.customer_id, booking.enrollment_id || attRecord?.enrollment_id || '', 'attended')} disabled={saving}
-                          className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${currentStatus === 'attended' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
-                          ✓ حضر
-                        </button>
-                        <button onClick={() => markAttendance(session.id, booking.customer_id, booking.enrollment_id || attRecord?.enrollment_id || '', 'absent')} disabled={saving}
-                          className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${currentStatus === 'absent' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}>
-                          ✗ غاب
-                        </button>
-                        <button onClick={() => markAttendance(session.id, booking.customer_id, booking.enrollment_id || attRecord?.enrollment_id || '', 'rescheduled')} disabled={saving}
-                          className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${currentStatus === 'rescheduled' ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-600 hover:bg-amber-100'}`}>
-                          ↻ تأجيل
-                        </button>
-                      </div>
+                      <span className="text-xs text-gray-400">{session.booked_count}/{session.capacity}</span>
                     </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        ))}
+                    <div className="space-y-2">
+                      {(session.calendar_bookings || []).map((booking: any) => {
+                        const attRecord = session.attendanceList?.find((a: any) => a.enrollment_id === booking.enrollment_id)
+                        const isAttended = attRecord?.attended === true
+                        const isAbsent = attRecord?.attended === false && attRecord
+                        return (
+                          <div key={booking.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-xs">
+                                {booking.customers?.full_name?.charAt(0).toUpperCase()}
+                              </div>
+                              <p className="text-sm text-gray-700">{booking.customers?.full_name}</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => markAttendance(session.id, booking.customer_id, booking.enrollment_id, true)}
+                                disabled={saving}
+                                className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${isAttended ? 'bg-green-600 text-white' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
+                                حضر
+                              </button>
+                              <button
+                                onClick={() => markAttendance(session.id, booking.customer_id, booking.enrollment_id, false)}
+                                disabled={saving}
+                                className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${isAbsent ? 'bg-red-600 text-white' : 'bg-red-50 text-red-500 hover:bg-red-100'}`}>
+                                غاب
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
