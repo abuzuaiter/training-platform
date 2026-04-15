@@ -77,8 +77,9 @@ export default function OrgEnrollmentsPage() {
     })
 
     if (res.ok) {
+      const newEnrollment = await res.json()
       // Generate calendar sessions
-      await generateSessions(form.session_id, form.customer_id, (await res.json()).id, form.start_date, pkg)
+      await generateSessions(form.session_id, form.customer_id, newEnrollment.id, form.start_date, pkg)
       setMessage('Enrollment created!')
       setShowForm(false)
       setForm({ customer_id: '', package_id: '', session_id: '', start_date: '', payment_status: 'pending' })
@@ -104,7 +105,9 @@ export default function OrgEnrollmentsPage() {
     const [eh, em] = template.end_time.slice(0,5).split(':').map(Number)
     const selectedDayNums = (template.recurrence_days || []).map((d: string) => dayOrder.indexOf(d)).sort((a: number, b: number) => a - b)
 
-    let current = new Date(startDate)
+    // Parse date in local time to avoid UTC offset issue
+    const [year, month, day] = startDate.split('-').map(Number)
+    let current = new Date(year, month - 1, day)
     let count = 0
 
     while (count < totalSessions) {

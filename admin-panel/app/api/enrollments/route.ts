@@ -16,12 +16,17 @@ export async function GET(req: NextRequest) {
 }
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { customer_id, package_id, organization_id, start_date } = body
+  const { customer_id, package_id, session_id, organization_id, start_date, payment_status, paid_at, sessions_remaining, sessions_attended, status } = body
   if (!customer_id || !package_id || !organization_id) return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   const { data: pkg } = await supabaseAdmin.from('packages').select('*').eq('id', package_id).single()
   if (!pkg) return NextResponse.json({ error: 'Package not found' }, { status: 404 })
   const sessions_remaining = pkg.type === 'sessions' ? pkg.sessions_count : null
   const { data, error } = await supabaseAdmin.from('enrollments').insert({
+    session_id: session_id || null,
+    payment_status: payment_status || 'pending',
+    paid_at: paid_at || null,
+    sessions_remaining: sessions_remaining || null,
+    sessions_attended: sessions_attended || 0,
     customer_id, package_id, organization_id,
     sessions_remaining, status: 'active',
     start_date: start_date || new Date().toISOString().split('T')[0]
