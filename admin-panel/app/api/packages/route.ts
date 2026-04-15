@@ -12,12 +12,14 @@ export async function GET(req: NextRequest) {
 }
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { organization_id, name, description, type, sessions_count, price, absence_policy, enable_notification } = body
+  const { organization_id, name, description, type, sessions_count, total_sessions, price, absence_policy, enable_notification, notify_before_end, capacity } = body
+  const sessCount = sessions_count || total_sessions || null
   if (!organization_id || !name || !price) return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   const { data, error } = await supabaseAdmin.from('packages').insert({
     organization_id, name, description: description || null,
     type: type || 'sessions',
-    sessions_count: type === 'sessions' ? sessions_count : null,
+    sessions_count: sessCount,
+    capacity: capacity || null,
     price, absence_policy: absence_policy || 'deduct',
     enable_notification: type !== 'single' ? enable_notification : false,
     is_active: true
