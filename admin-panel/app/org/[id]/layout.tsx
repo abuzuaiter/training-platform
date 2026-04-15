@@ -24,7 +24,7 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
   }, [id])
 
   const allowedPages: Record<string, string[]> = {
-    admin:        ['dashboard','calendar','sessions','customers','enrollments','packages','members','invitations'],
+    admin:        ['dashboard','calendar','sessions','customers','enrollments','packages','invoices','members','invitations'],
     coach:        ['dashboard','calendar','customers'],
     trainer:      ['dashboard','calendar','customers'],
     receptionist: ['dashboard','customers','enrollments'],
