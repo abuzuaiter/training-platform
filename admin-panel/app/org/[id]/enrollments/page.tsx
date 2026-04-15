@@ -93,8 +93,14 @@ export default function OrgEnrollmentsPage() {
   }
 
   async function generateSessions(sessionId: string, customerId: string, enrollmentId: string, startDate: string, pkg: any) {
+    console.log('=== generateSessions START ===')
+    console.log('sessionId:', sessionId)
+    console.log('sessions state length:', sessions.length)
+    console.log('sessions:', sessions.map(s => s.id))
     const template = sessions.find(s => s.id === sessionId)
-    if (!template || !pkg) return
+    console.log('template found:', template)
+    console.log('pkg:', pkg)
+    if (!template || !pkg) { console.log('EARLY RETURN - template or pkg missing'); return }
 
     const totalSessions = pkg.sessions_count || pkg.total_sessions || 0
     if (totalSessions === 0) return
