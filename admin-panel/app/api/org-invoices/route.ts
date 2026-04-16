@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   
   let query = supabaseAdmin
     .from('org_invoices')
-    .select('*, customers(full_name, mobile)')
+    .select('*, customers(full_name, mobile), enrollments(package_id, packages(name, sessions_count))')
     .order('created_at', { ascending: false })
   
   if (org_id) query = query.eq('organization_id', org_id)
