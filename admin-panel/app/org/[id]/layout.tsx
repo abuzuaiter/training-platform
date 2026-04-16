@@ -96,7 +96,7 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
             const isActive = pathname === item.href || (item.href !== `/org/${id}/dashboard` && pathname.startsWith(item.href))
             return (
               <Link key={item.href} href={item.href}>
-                <div className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
+                <div suppressHydrationWarning className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
                   {item.label}
                 </div>
               </Link>
