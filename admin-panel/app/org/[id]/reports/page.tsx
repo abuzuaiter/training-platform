@@ -58,7 +58,7 @@ export default function OrgReportsPage() {
     const totalPaid = filtered.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount), 0)
     const totalPending = filtered.filter(i => i.status === 'pending').reduce((s, i) => s + Number(i.amount), 0)
     const periodLabel = filter === 'today' ? 'Today' : filter === 'week' ? 'This Week' : filter === 'month' ? 'This Month' : `${from} — ${to}`
-    const win = window.open('', '_blank')
+    const win = window.open('', '_blank', 'width=800,height=600')
     if (!win) return
     win.document.write(`<!DOCTYPE html>
     <html><head><title>Report</title>
@@ -101,7 +101,7 @@ export default function OrgReportsPage() {
     </body></html>`)
     win.document.close()
     win.focus()
-    setTimeout(() => { win.print(); win.close() }, 300)
+    setTimeout(() => win.print(), 500)
   }
 
   const filtered = getFiltered()
