@@ -7,12 +7,12 @@ export default function OrgReportsPage() {
   const id = params.id as string
   const [invoices, setInvoices] = useState<any[]>([])
   const [org, setOrg] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('today')
-  const [from, setFrom] = useState('')
-  const [to, setTo] = useState('')
   const [customers, setCustomers] = useState<any[]>([])
   const [packages, setPackages] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState('month')
+  const [from, setFrom] = useState('')
+  const [to, setTo] = useState('')
   const [filterCustomer, setFilterCustomer] = useState('')
   const [filterPackage, setFilterPackage] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
@@ -38,7 +38,6 @@ export default function OrgReportsPage() {
     const now = new Date()
     return invoices.filter(inv => {
       const d = new Date(inv.created_at)
-      // Period filter
       let periodMatch = true
       if (filter === 'today') periodMatch = d.toDateString() === now.toDateString()
       else if (filter === 'week') periodMatch = d >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
@@ -47,11 +46,8 @@ export default function OrgReportsPage() {
         const toDate = new Date(to); toDate.setHours(23, 59, 59)
         periodMatch = d >= new Date(from) && d <= toDate
       }
-      // Customer filter
       const customerMatch = !filterCustomer || inv.customer_id === filterCustomer
-      // Package filter
       const packageMatch = !filterPackage || inv.enrollments?.packages?.name === filterPackage
-      // Status filter
       const statusMatch = !filterStatus || inv.status === filterStatus
       return periodMatch && customerMatch && packageMatch && statusMatch
     })
@@ -61,70 +57,44 @@ export default function OrgReportsPage() {
     const filtered = getFiltered()
     const totalPaid = filtered.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount), 0)
     const totalPending = filtered.filter(i => i.status === 'pending').reduce((s, i) => s + Number(i.amount), 0)
-
-    const periodLabel = filter === 'today' ? 'Today' :
-      filter === 'week' ? 'This Week' :
-      filter === 'month' ? 'This Month' :
-      `${from} — ${to}`
-
+    const periodLabel = filter === 'today' ? 'Today' : filter === 'week' ? 'This Week' : filter === 'month' ? 'This Month' : `${from} — ${to}`
     const win = window.open('', '_blank')
     if (!win) return
     win.document.write(`<!DOCTYPE html>
-    <html><head><title>Invoices Report</title>
+    <html><head><title>Report</title>
     <style>
-      * { box-sizing: border-box; margin: 0; padding: 0; }
       body { font-family: Arial, sans-serif; padding: 40px; color: #1a1a2e; }
-      .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #e2e8f0; }
-      .org-name { font-size: 20px; font-weight: 800; }
-      .report-title { font-size: 18px; font-weight: 700; color: #185FA5; }
-      .period { font-size: 13px; color: #64748b; margin-top: 4px; }
-      .stats { display: flex; gap: 24px; margin-bottom: 24px; }
-      .stat { background: #f8fafc; border-radius: 12px; padding: 16px 24px; text-align: center; flex: 1; }
-      .stat-value { font-size: 22px; font-weight: 800; }
-      .stat-label { font-size: 11px; color: #64748b; margin-top: 4px; }
-      .green { color: #16a34a; }
-      .amber { color: #d97706; }
-      .blue { color: #185FA5; }
+      .header { display: flex; justify-content: space-between; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #e2e8f0; }
+      .stats { display: flex; gap: 16px; margin-bottom: 24px; }
+      .stat { background: #f8fafc; border-radius: 12px; padding: 16px; text-align: center; flex: 1; }
+      .stat-value { font-size: 20px; font-weight: 800; }
       table { width: 100%; border-collapse: collapse; }
       th { background: #f8fafc; padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; color: #64748b; border-bottom: 1px solid #e2e8f0; }
       td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-      .paid { color: #16a34a; font-weight: 600; }
-      .pending { color: #d97706; font-weight: 600; }
     </style></head><body>
     <div class="header">
-      <div style="display:flex; align-items:center; gap:12px;">
-        ${org?.logo_url ? `<img src="${org.logo_url}" style="width:48px; height:48px; object-fit:contain;" />` : ''}
-        <div>
-          <div class="org-name">${org?.name || ''}</div>
-        </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        ${org?.logo_url ? `<img src="${org.logo_url}" style="width:48px;height:48px;object-fit:contain;" />` : ''}
+        <div style="font-size:20px;font-weight:800;">${org?.name || ''}</div>
       </div>
       <div style="text-align:right;">
-        <div class="report-title">Invoices Report</div>
-        <div class="period">Period: ${periodLabel}</div>
-        <div class="period">Generated: ${new Date().toLocaleDateString('en-GB')}</div>
+        <div style="font-size:18px;font-weight:700;color:#185FA5;">Invoices Report</div>
+        <div style="font-size:12px;color:#64748b;">Period: ${periodLabel}</div>
+        <div style="font-size:12px;color:#64748b;">Generated: ${new Date().toLocaleDateString('en-GB')}</div>
       </div>
     </div>
-
     <div class="stats">
-      <div class="stat"><div class="stat-value green">${totalPaid} QAR</div><div class="stat-label">Collected</div></div>
-      <div class="stat"><div class="stat-value amber">${totalPending} QAR</div><div class="stat-label">Pending</div></div>
-      <div class="stat"><div class="stat-value blue">${filtered.length}</div><div class="stat-label">Total Invoices</div></div>
+      <div class="stat"><div class="stat-value" style="color:#16a34a;">${totalPaid} QAR</div><div style="font-size:11px;color:#64748b;">Collected</div></div>
+      <div class="stat"><div class="stat-value" style="color:#d97706;">${totalPending} QAR</div><div style="font-size:11px;color:#64748b;">Pending</div></div>
+      <div class="stat"><div class="stat-value" style="color:#185FA5;">${filtered.length}</div><div style="font-size:11px;color:#64748b;">Invoices</div></div>
     </div>
-
     <table>
-      <tr>
-        <th>INVOICE</th>
-        <th>CUSTOMER</th>
-        <th>AMOUNT</th>
-        <th>STATUS</th>
-        <th>DATE</th>
-      </tr>
-      ${filtered.map(inv => `
-      <tr>
+      <tr><th>INVOICE</th><th>CUSTOMER</th><th>AMOUNT</th><th>STATUS</th><th>DATE</th></tr>
+      ${filtered.map(inv => `<tr>
         <td>${inv.invoice_number}</td>
         <td>${inv.customers?.full_name || '—'}</td>
         <td>${inv.amount} QAR</td>
-        <td class="${inv.status}">${inv.status.toUpperCase()}</td>
+        <td style="color:${inv.status === 'paid' ? '#16a34a' : '#d97706'};font-weight:600;">${inv.status.toUpperCase()}</td>
         <td>${new Date(inv.created_at).toLocaleDateString('en-GB')}</td>
       </tr>`).join('')}
     </table>
@@ -143,7 +113,7 @@ export default function OrgReportsPage() {
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-gray-900">Reports</h1>
-          <p className="text-xs text-gray-400">Financial & Attendance</p>
+          <p className="text-xs text-gray-400">{filtered.length} invoices in selected period</p>
         </div>
         <button onClick={handlePrint}
           className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
@@ -153,16 +123,22 @@ export default function OrgReportsPage() {
 
       <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Filters */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-6">
+        <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-6 space-y-3">
+          {/* Period */}
           <div className="flex gap-2 flex-wrap items-center">
-            {['today', 'week', 'month', 'custom'].map(f => (
-              <button key={f} onClick={() => setFilter(f)}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${filter === f ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}>
-                {f === 'today' ? 'Today' : f === 'week' ? 'This Week' : f === 'month' ? 'This Month' : 'Custom'}
+            {[
+              { key: 'today', label: 'Today' },
+              { key: 'week', label: 'This Week' },
+              { key: 'month', label: 'This Month' },
+              { key: 'custom', label: 'Custom' },
+            ].map(f => (
+              <button key={f.key} onClick={() => setFilter(f.key)}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${filter === f.key ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}>
+                {f.label}
               </button>
             ))}
             {filter === 'custom' && (
-              <div className="flex gap-2 items-center ml-2">
+              <div className="flex gap-2 items-center">
                 <input type="date" value={from} onChange={e => setFrom(e.target.value)}
                   className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" />
                 <span className="text-gray-400">→</span>
@@ -171,14 +147,16 @@ export default function OrgReportsPage() {
               </div>
             )}
           </div>
-          <div className="flex gap-3 flex-wrap mt-3 pt-3 border-t border-gray-100">
+
+          {/* Secondary Filters */}
+          <div className="flex gap-3 flex-wrap pt-2 border-t border-gray-100">
             <select value={filterCustomer} onChange={e => setFilterCustomer(e.target.value)}
-              className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none min-w-40">
+              className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none">
               <option value="">All Customers</option>
               {customers.map(c => <option key={c.id} value={c.id}>{c.full_name}</option>)}
             </select>
             <select value={filterPackage} onChange={e => setFilterPackage(e.target.value)}
-              className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none min-w-40">
+              className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none">
               <option value="">All Packages</option>
               {packages.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
             </select>
@@ -190,12 +168,11 @@ export default function OrgReportsPage() {
             </select>
             {(filterCustomer || filterPackage || filterStatus) && (
               <button onClick={() => { setFilterCustomer(''); setFilterPackage(''); setFilterStatus('') }}
-                className="text-xs px-3 py-2 rounded-xl text-red-500 hover:bg-red-50 transition font-semibold">
-                Clear Filters
+                className="text-xs px-3 py-2 rounded-xl text-red-500 hover:bg-red-50 font-semibold transition">
+                Clear
               </button>
             )}
           </div>
-          <div className="flex gap-2 flex-wrap items-center hidden">
         </div>
 
         {/* Stats */}
