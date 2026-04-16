@@ -34,8 +34,7 @@ export default function OrgInvoicesPage() {
   }
 
   function handlePrint(invoice: any) {
-    const orgCode = org?.org_code || 'ORG'
-    const invNum = `${orgCode}-${invoice.invoice_number}`
+    const invNum = invoice.invoice_number
     const win = window.open('', '_blank')
     if (!win) return
     win.document.write(`<!DOCTYPE html>
@@ -94,8 +93,8 @@ export default function OrgInvoicesPage() {
           <th style="text-align:right;">AMOUNT</th>
         </tr>
         <tr>
-          <td>Training Package Enrollment</td>
-          <td>${new Date(invoice.created_at).toLocaleDateString('en-GB')}</td>
+          <td>${invoice.enrollments?.packages?.name || 'Training Package'}</td>
+          <td>${invoice.enrollments?.packages?.sessions_count ? invoice.enrollments.packages.sessions_count + ' Sessions' : '—'}</td>
           <td style="text-align:right;">${invoice.amount} QAR</td>
         </tr>
         <tr class="total-row">
@@ -125,7 +124,8 @@ export default function OrgInvoicesPage() {
       </div>
       </body></html>`)
     win.document.close()
-    setTimeout(() => win.print(), 300)
+    win.focus()
+    setTimeout(() => { win.print(); win.close() }, 300)
   }
 
   const totalPaid = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount), 0)
