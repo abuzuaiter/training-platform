@@ -1,3 +1,4 @@
+
 'use client'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
@@ -89,10 +90,11 @@ export default function OrgReportsPage() {
       <div class="stat"><div class="stat-value" style="color:#185FA5;">${filtered.length}</div><div style="font-size:11px;color:#64748b;">Invoices</div></div>
     </div>
     <table>
-      <tr><th>INVOICE</th><th>CUSTOMER</th><th>AMOUNT</th><th>STATUS</th><th>DATE</th></tr>
+      <tr><th>INVOICE</th><th>CUSTOMER</th><th>PACKAGE</th><th>AMOUNT</th><th>STATUS</th><th>DATE</th></tr>
       ${filtered.map(inv => `<tr>
         <td>${inv.invoice_number}</td>
         <td>${inv.customers?.full_name || '—'}</td>
+        <td>${inv.enrollments?.packages?.name || '—'}</td>
         <td>${inv.amount} QAR</td>
         <td style="color:${inv.status === 'paid' ? '#16a34a' : '#d97706'};font-weight:600;">${inv.status.toUpperCase()}</td>
         <td>${new Date(inv.created_at).toLocaleDateString('en-GB')}</td>
