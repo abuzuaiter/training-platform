@@ -91,10 +91,7 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
-          {mounted && navItems.filter(item => {
-            const page = item.href.split('/').pop() || 'dashboard'
-            return canAccess(page)
-          }).map(item => {
+          {navItems.map(item => {
             const isActive = pathname === item.href || (item.href !== `/org/${id}/dashboard` && pathname.startsWith(item.href))
             return (
               <Link key={item.href} href={item.href}>
