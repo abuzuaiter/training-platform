@@ -11,17 +11,26 @@ export default function OrgReportsPage() {
   const [filter, setFilter] = useState('today')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
+  const [customers, setCustomers] = useState<any[]>([])
+  const [packages, setPackages] = useState<any[]>([])
+  const [filterCustomer, setFilterCustomer] = useState('')
+  const [filterPackage, setFilterPackage] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
 
   useEffect(() => { if (id) loadAll() }, [id])
 
   async function loadAll() {
     setLoading(true)
-    const [invRes, orgRes] = await Promise.all([
+    const [invRes, orgRes, custRes, pkgRes] = await Promise.all([
       fetch(`/api/org-invoices?org_id=${id}`),
-      fetch(`/api/organizations/${id}`)
+      fetch(`/api/organizations/${id}`),
+      fetch(`/api/organizations/${id}/customers`),
+      fetch(`/api/packages?org_id=${id}`)
     ])
     setInvoices(invRes.ok ? await invRes.json() : [])
     setOrg(orgRes.ok ? await orgRes.json() : null)
+    setCustomers(custRes.ok ? await custRes.json() : [])
+    setPackages(pkgRes.ok ? await pkgRes.json() : [])
     setLoading(false)
   }
 
@@ -29,20 +38,22 @@ export default function OrgReportsPage() {
     const now = new Date()
     return invoices.filter(inv => {
       const d = new Date(inv.created_at)
-      if (filter === 'today') {
-        return d.toDateString() === now.toDateString()
-      } else if (filter === 'week') {
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-        return d >= weekAgo
-      } else if (filter === 'month') {
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-      } else if (filter === 'custom' && from && to) {
-        const fromDate = new Date(from)
-        const toDate = new Date(to)
-        toDate.setHours(23, 59, 59)
-        return d >= fromDate && d <= toDate
+      // Period filter
+      let periodMatch = true
+      if (filter === 'today') periodMatch = d.toDateString() === now.toDateString()
+      else if (filter === 'week') periodMatch = d >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+      else if (filter === 'month') periodMatch = d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+      else if (filter === 'custom' && from && to) {
+        const toDate = new Date(to); toDate.setHours(23, 59, 59)
+        periodMatch = d >= new Date(from) && d <= toDate
       }
-      return true
+      // Customer filter
+      const customerMatch = !filterCustomer || inv.customer_id === filterCustomer
+      // Package filter
+      const packageMatch = !filterPackage || inv.enrollments?.packages?.name === filterPackage
+      // Status filter
+      const statusMatch = !filterStatus || inv.status === filterStatus
+      return periodMatch && customerMatch && packageMatch && statusMatch
     })
   }
 
@@ -160,6 +171,31 @@ export default function OrgReportsPage() {
               </div>
             )}
           </div>
+          <div className="flex gap-3 flex-wrap mt-3 pt-3 border-t border-gray-100">
+            <select value={filterCustomer} onChange={e => setFilterCustomer(e.target.value)}
+              className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none min-w-40">
+              <option value="">All Customers</option>
+              {customers.map(c => <option key={c.id} value={c.id}>{c.full_name}</option>)}
+            </select>
+            <select value={filterPackage} onChange={e => setFilterPackage(e.target.value)}
+              className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none min-w-40">
+              <option value="">All Packages</option>
+              {packages.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+            </select>
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+              className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none">
+              <option value="">All Status</option>
+              <option value="paid">Paid</option>
+              <option value="pending">Pending</option>
+            </select>
+            {(filterCustomer || filterPackage || filterStatus) && (
+              <button onClick={() => { setFilterCustomer(''); setFilterPackage(''); setFilterStatus('') }}
+                className="text-xs px-3 py-2 rounded-xl text-red-500 hover:bg-red-50 transition font-semibold">
+                Clear Filters
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2 flex-wrap items-center hidden">
         </div>
 
         {/* Stats */}
