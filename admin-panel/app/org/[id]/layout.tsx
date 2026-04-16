@@ -12,6 +12,7 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
   const [plan, setPlan] = useState<any>(null)
 
   const [memberRole, setMemberRole] = useState<string>('admin')
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -20,6 +21,7 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
     fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => {
       if (d?.permissions?.member_role) setMemberRole(d.permissions.member_role)
       else if (d?.role === 'org_admin') setMemberRole('admin')
+      setMounted(true)
     })
   }, [id])
 
@@ -89,7 +91,7 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
-          {navItems.filter(item => {
+          {mounted && navItems.filter(item => {
             const page = item.href.split('/').pop() || 'dashboard'
             return canAccess(page)
           }).map(item => {
