@@ -56,13 +56,6 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        {/* Plan */}
-        {org?.category && (
-          <div className="px-5 py-2 border-b border-gray-100">
-            <p className="text-xs text-gray-400">{org.category}</p>
-          </div>
-        )}
-
         {/* Nav */}
         <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
           {links.map(link => {
