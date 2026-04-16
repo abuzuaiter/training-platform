@@ -11,57 +11,35 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
   const [org, setOrg] = useState<any>(null)
   const [plan, setPlan] = useState<any>(null)
 
-  const [memberRole, setMemberRole] = useState<string>('admin')
-  const [mounted, setMounted] = useState(false)
-
   useEffect(() => {
     if (!id) return
     fetch(`/api/organizations/${id}`).then(r => r.ok ? r.json() : null).then(d => setOrg(d))
     fetch(`/api/organizations/${id}/plans`).then(r => r.ok ? r.json() : null).then(d => setPlan(d?.[0] || null))
-    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => {
-      if (d?.permissions?.member_role) setMemberRole(d.permissions.member_role)
-      else if (d?.role === 'org_admin') setMemberRole('admin')
-      setMounted(true)
-    })
   }, [id])
-
-  const allowedPages: Record<string, string[]> = {
-    admin:        ['dashboard','calendar','sessions','customers','enrollments','packages','invoices','reports','members','invitations'],
-    coach:        ['dashboard','calendar','customers'],
-    trainer:      ['dashboard','calendar','customers'],
-    receptionist: ['dashboard','customers','enrollments'],
-    doctor:       ['dashboard','customers'],
-    therapist:    ['dashboard','customers'],
-    other:        ['dashboard'],
-  }
-
-  function canAccess(page: string) {
-    const allowed = allowedPages[memberRole] || ['dashboard']
-    return allowed.includes(page)
-  }
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' })
     router.push('/login')
   }
 
-  const navItems = [
-    { href: `/org/${id}/dashboard`, label: 'Dashboard' },
-    { href: `/org/${id}/calendar`, label: 'Calendar' },
-    { href: `/org/${id}/sessions`, label: 'Sessions' },
-    { href: `/org/${id}/customers`, label: 'Customers' },
-    { href: `/org/${id}/enrollments`, label: 'Enrollments' },
-    { href: `/org/${id}/packages`, label: 'Packages' },
-    { href: `/org/${id}/invoices`, label: 'Invoices' },
-    { href: `/org/${id}/reports`, label: 'Reports' },
-    { href: `/org/${id}/members`, label: 'Team' },
-
+  const base = `/org/${id}`
+  const links = [
+    { href: `${base}/dashboard`, label: 'Dashboard' },
+    { href: `${base}/calendar`, label: 'Calendar' },
+    { href: `${base}/sessions`, label: 'Sessions' },
+    { href: `${base}/customers`, label: 'Customers' },
+    { href: `${base}/enrollments`, label: 'Enrollments' },
+    { href: `${base}/packages`, label: 'Packages' },
+    { href: `${base}/invoices`, label: 'Invoices' },
+    { href: `${base}/reports`, label: 'Reports' },
+    { href: `${base}/members`, label: 'Team' },
   ]
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <div className="w-60 bg-white border-r border-gray-200 flex flex-col fixed h-full z-10">
-        {/* Logo */}
+
+        {/* Logo / Org */}
         <div className="px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
             {org?.logo_url ? (
@@ -78,25 +56,21 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        {/* Org Info */}
-        <div className="px-5 py-3 border-b border-gray-100">
-          <p className="text-sm font-bold text-gray-900 truncate">{org?.name || 'Organization'}</p>
-          <p className="text-xs text-gray-400 truncate">{org?.category || ''}</p>
-          {plan && (
-            <span className={`mt-1 inline-block text-xs px-2 py-0.5 rounded-full font-medium ${plan.payment_status === 'paid' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
-              {plan.plans?.name}
-            </span>
-          )}
-        </div>
+        {/* Plan */}
+        {org?.category && (
+          <div className="px-5 py-2 border-b border-gray-100">
+            <p className="text-xs text-gray-400">{org.category}</p>
+          </div>
+        )}
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
-          {navItems.map(item => {
-            const isActive = pathname === item.href || (item.href !== `/org/${id}/dashboard` && pathname.startsWith(item.href))
+          {links.map(link => {
+            const active = pathname === link.href || (link.href !== `${base}/dashboard` && pathname.startsWith(link.href))
             return (
-              <Link key={item.href} href={item.href}>
-                <div suppressHydrationWarning className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
-                  {item.label}
+              <Link key={link.href} href={link.href}>
+                <div className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${active ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
+                  {link.label}
                 </div>
               </Link>
             )
