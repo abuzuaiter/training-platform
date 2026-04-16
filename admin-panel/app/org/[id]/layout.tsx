@@ -24,7 +24,7 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
   }, [id])
 
   const allowedPages: Record<string, string[]> = {
-    admin:        ['dashboard','calendar','sessions','customers','enrollments','packages','invoices','members','invitations'],
+    admin:        ['dashboard','calendar','sessions','customers','enrollments','packages','invoices','reports','members','invitations'],
     coach:        ['dashboard','calendar','customers'],
     trainer:      ['dashboard','calendar','customers'],
     receptionist: ['dashboard','customers','enrollments'],
@@ -51,6 +51,7 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
     { href: `/org/${id}/enrollments`, label: 'Enrollments' },
     { href: `/org/${id}/packages`, label: 'Packages' },
     { href: `/org/${id}/invoices`, label: 'Invoices' },
+    { href: `/org/${id}/reports`, label: 'Reports' },
     { href: `/org/${id}/members`, label: 'Team' },
 
   ]
