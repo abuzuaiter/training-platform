@@ -203,6 +203,7 @@ export default function OrgReportsPage() {
                 <tr className="bg-gray-50 border-b border-gray-100">
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">INVOICE</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">CUSTOMER</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">PACKAGE</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">AMOUNT</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">STATUS</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">DATE</th>
@@ -213,6 +214,7 @@ export default function OrgReportsPage() {
                   <tr key={inv.id} className="border-b border-gray-50 hover:bg-gray-50">
                     <td className="px-5 py-3 text-sm font-medium text-gray-900">{inv.invoice_number}</td>
                     <td className="px-5 py-3 text-sm text-gray-700">{inv.customers?.full_name || '—'}</td>
+                    <td className="px-5 py-3 text-sm text-gray-500">{inv.enrollments?.packages?.name || '—'}</td>
                     <td className="px-5 py-3 text-sm font-semibold text-gray-900">{inv.amount} QAR</td>
                     <td className="px-5 py-3">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${inv.status === 'paid' ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'}`}>
