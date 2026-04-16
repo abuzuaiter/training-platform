@@ -19,10 +19,11 @@ export default function ManageOrgPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [uploadingStamp, setUploadingStamp] = useState(false)
   const [message, setMessage] = useState('')
   const [form, setForm] = useState({
     name: '', name_ar: '', email: '', phone: '', mobile: '',
-    category: '', account_manager_id: '', logo_url: ''
+    category: '', account_manager_id: '', logo_url: '', stamp_url: ''
   })
 
   useEffect(() => { if (id) loadAll() }, [id])
@@ -46,7 +47,8 @@ export default function ManageOrgPage() {
         mobile: orgData.mobile || '',
         category: orgData.category || '',
         account_manager_id: orgData.account_manager_id || '',
-        logo_url: orgData.logo_url || ''
+        logo_url: orgData.logo_url || '',
+        stamp_url: orgData.stamp_url || ''
       })
     }
     const usersData = await usersRes.json()
@@ -73,6 +75,24 @@ export default function ManageOrgPage() {
       setTimeout(() => setMessage(''), 3000)
     }
     setUploadingLogo(false)
+  }
+
+  async function handleStampUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingStamp(true)
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('org_id', id)
+    formData.append('type', 'stamp')
+    const res = await fetch('/api/upload-logo', { method: 'POST', body: formData })
+    if (res.ok) {
+      const { url } = await res.json()
+      setForm(prev => ({ ...prev, stamp_url: url }))
+      setMessage('Stamp uploaded!')
+      setTimeout(() => setMessage(''), 3000)
+    }
+    setUploadingStamp(false)
   }
 
   async function handleSave() {
@@ -166,6 +186,20 @@ export default function ManageOrgPage() {
                 <label className="cursor-pointer border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 transition">
                   {uploadingLogo ? 'Uploading...' : 'Upload Logo'}
                   <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" disabled={uploadingLogo} />
+                </label>
+              </div>
+            </div>
+
+            {/* Stamp */}
+            <div className="md:col-span-2 mt-2">
+              <label className="block text-xs font-semibold text-gray-500 mb-1">STAMP (Optional)</label>
+              <div className="flex items-center gap-4">
+                {form.stamp_url && (
+                  <img src={form.stamp_url} alt="Stamp" className="w-16 h-16 rounded-xl object-contain border border-gray-200 bg-white p-1" />
+                )}
+                <label className="cursor-pointer border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 transition">
+                  {uploadingStamp ? 'Uploading...' : 'Upload Stamp'}
+                  <input type="file" accept="image/*" onChange={handleStampUpload} className="hidden" disabled={uploadingStamp} />
                 </label>
               </div>
             </div>

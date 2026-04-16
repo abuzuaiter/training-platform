@@ -17,8 +17,9 @@ export async function POST(req: NextRequest) {
 
   const bytes = await file.arrayBuffer()
   const buffer = Buffer.from(bytes)
+  const type = formData.get('type') as string || 'logo'
   const ext = file.name.split('.').pop()
-  const fileName = `logos/${org_id}.${ext}`
+  const fileName = `${type === 'stamp' ? 'stamps' : 'logos'}/${org_id}.${ext}`
 
   const { error } = await supabaseAdmin.storage
     .from('org-assets')
@@ -31,9 +32,10 @@ export async function POST(req: NextRequest) {
 
   const { data } = supabaseAdmin.storage.from('org-assets').getPublicUrl(fileName)
 
-  // Update organization logo_url
+  // Update organization
+  const field = type === 'stamp' ? 'stamp_url' : 'logo_url'
   await supabaseAdmin.from('organizations')
-    .update({ logo_url: data.publicUrl })
+    .update({ [field]: data.publicUrl })
     .eq('id', org_id)
 
   return NextResponse.json({ url: data.publicUrl })

@@ -34,51 +34,98 @@ export default function OrgInvoicesPage() {
   }
 
   function handlePrint(invoice: any) {
+    const orgCode = org?.org_code || 'ORG'
+    const invNum = `${orgCode}-${invoice.invoice_number}`
     const win = window.open('', '_blank')
     if (!win) return
-    win.document.write(`
-      <html><head><title>${invoice.invoice_number}</title>
+    win.document.write(`<!DOCTYPE html>
+      <html><head><title>${invNum}</title>
       <style>
-        body { font-family: sans-serif; padding: 40px; color: #1a1a2e; }
-        .header { display: flex; justify-content: space-between; margin-bottom: 32px; }
-        .logo { width: 64px; height: 64px; object-fit: contain; }
-        .invoice-num { font-size: 24px; font-weight: 800; color: #185FA5; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; padding: 48px; color: #1a1a2e; background: white; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #e2e8f0; }
+        .logo { width: 72px; height: 72px; object-fit: contain; }
+        .org-name { font-size: 22px; font-weight: 800; color: #1a1a2e; }
+        .org-info { font-size: 13px; color: #64748b; margin-top: 4px; }
+        .invoice-num { font-size: 22px; font-weight: 800; color: #185FA5; }
+        .invoice-date { font-size: 13px; color: #64748b; margin-top: 4px; }
+        .bill-to { margin-bottom: 28px; }
+        .label { font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: 1px; margin-bottom: 6px; }
+        .customer-name { font-size: 18px; font-weight: 700; }
+        .customer-info { font-size: 13px; color: #64748b; margin-top: 2px; }
         table { width: 100%; border-collapse: collapse; margin: 24px 0; }
-        th { background: #f1f5f9; padding: 10px; text-align: left; font-size: 12px; }
-        td { padding: 12px 10px; border-bottom: 1px solid #f1f5f9; }
-        .total { font-weight: 800; font-size: 18px; }
-        .status { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-        .paid { background: #dcfce7; color: #16a34a; }
-        .pending { background: #fef3c7; color: #d97706; }
+        th { background: #f8fafc; padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: 0.5px; border-bottom: 1px solid #e2e8f0; }
+        td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        .total-row td { font-weight: 800; font-size: 16px; background: #f8fafc; border-top: 2px solid #e2e8f0; }
+        .status-badge { display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+        .paid-badge { background: #dcfce7; color: #16a34a; }
+        .pending-badge { background: #fef3c7; color: #d97706; }
+        .footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid #e2e8f0; }
+        .disclaimer { font-size: 11px; color: #94a3b8; line-height: 1.6; margin-bottom: 12px; }
+        .stamp-section { display: flex; justify-content: flex-end; margin-top: 24px; }
+        .stamp-img { width: 100px; height: 100px; object-fit: contain; opacity: 0.85; }
       </style></head><body>
       <div class="header">
         <div style="display:flex; align-items:center; gap:16px;">
           ${org?.logo_url ? `<img src="${org.logo_url}" class="logo" />` : ''}
           <div>
-            <div style="font-size:20px; font-weight:800;">${org?.name || ''}</div>
-            <div style="color:#64748b; font-size:13px;">${org?.email || ''}</div>
+            <div class="org-name">${org?.name || ''}</div>
+            <div class="org-info">${org?.email || ''}</div>
+            <div class="org-info">${org?.phone || org?.mobile || ''}</div>
           </div>
         </div>
         <div style="text-align:right;">
-          <div class="invoice-num">${invoice.invoice_number}</div>
-          <div style="color:#64748b; font-size:13px;">${new Date(invoice.created_at).toLocaleDateString()}</div>
+          <div class="invoice-num">${invNum}</div>
+          <div class="invoice-date">Date: ${new Date(invoice.created_at).toLocaleDateString('en-GB')}</div>
+          ${invoice.status === 'paid' ? `<div class="invoice-date">Paid: ${new Date(invoice.paid_at).toLocaleDateString('en-GB')}</div>` : ''}
         </div>
       </div>
-      <div style="margin-bottom:24px;">
-        <div style="font-size:11px; font-weight:600; color:#64748b; margin-bottom:4px;">BILL TO</div>
-        <div style="font-size:18px; font-weight:700;">${invoice.customers?.full_name || '—'}</div>
-        <div style="color:#64748b;">${invoice.customers?.mobile || ''}</div>
+
+      <div class="bill-to">
+        <div class="label">BILL TO</div>
+        <div class="customer-name">${invoice.customers?.full_name || '—'}</div>
+        <div class="customer-info">${invoice.customers?.mobile || ''}</div>
       </div>
+
       <table>
-        <tr><th>Description</th><th>Amount</th></tr>
-        <tr><td>Training Package</td><td>${invoice.amount} QAR</td></tr>
-        <tr><td class="total">Total</td><td class="total">${invoice.amount} QAR</td></tr>
+        <tr>
+          <th>DESCRIPTION</th>
+          <th>SUBSCRIPTION PERIOD</th>
+          <th style="text-align:right;">AMOUNT</th>
+        </tr>
+        <tr>
+          <td>Training Package Enrollment</td>
+          <td>${new Date(invoice.created_at).toLocaleDateString('en-GB')}</td>
+          <td style="text-align:right;">${invoice.amount} QAR</td>
+        </tr>
+        <tr class="total-row">
+          <td colspan="2">Total</td>
+          <td style="text-align:right;">${invoice.amount} QAR</td>
+        </tr>
       </table>
-      <span class="status ${invoice.status}">${invoice.status === 'paid' ? 'PAID' : 'PENDING'}</span>
-      </body></html>
-    `)
+
+      <div style="margin-top:16px;">
+        <span class="status-badge ${invoice.status === 'paid' ? 'paid-badge' : 'pending-badge'}">
+          ${invoice.status === 'paid' ? '✓ PAID' : 'PAYMENT PENDING'}
+        </span>
+      </div>
+
+      ${org?.stamp_url ? `
+      <div class="stamp-section">
+        <img src="${org.stamp_url}" class="stamp-img" alt="Stamp" />
+      </div>` : ''}
+
+      <div class="footer">
+        <div class="disclaimer">
+          <strong>ملاحظة:</strong> هذه الفاتورة صادرة إلكترونياً وهي وثيقة رسمية معتمدة. المبالغ المدفوعة غير قابلة للاسترداد بعد بدء الدورة. يُطبَّق نظام الغياب وفقاً لسياسة الباقة المشترك بها. لأي استفسار يرجى التواصل معنا عبر ${org?.email || '[email/number]'}.
+        </div>
+        <div class="disclaimer">
+          <strong>Note:</strong> This is an electronically issued invoice and serves as an official document. Payments are non-refundable once the course has commenced. Absence policy is applied according to the enrolled package terms. For inquiries, please contact us at ${org?.email || '[email/number]'}.
+        </div>
+      </div>
+      </body></html>`)
     win.document.close()
-    win.print()
+    setTimeout(() => win.print(), 300)
   }
 
   const totalPaid = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount), 0)
