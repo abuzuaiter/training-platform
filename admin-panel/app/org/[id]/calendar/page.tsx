@@ -40,7 +40,7 @@ export default function OrgCalendarPage() {
 
   async function loadAll() {
     setLoading(true)
-    const [sessRes, custRes, actRes] = await Promise.all([
+    const [sessRes, membRes, custRes, actRes] = await Promise.all([
       fetch(`/api/calendar-sessions?org_id=${id}`),
       fetch(`/api/organizations/${id}/members`),
       fetch(`/api/organizations/${id}/customers`),
