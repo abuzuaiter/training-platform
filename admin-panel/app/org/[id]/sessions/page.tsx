@@ -26,7 +26,7 @@ export default function OrgSessionsPage() {
     title: '', capacity: '10',
     recurrence_type: 'weekly',
     recurrence_days: [] as string[],
-    start_time: '07:00', end_time: '08:00',
+    start_time: '07:00', end_time: '08:00', trainer_id: '',
   })
   const [editForm, setEditForm] = useState({
     title: '', capacity: '',
@@ -53,7 +53,7 @@ export default function OrgSessionsPage() {
     setSaving(true)
     const res = await fetch('/api/session-templates', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, organization_id: id, capacity: parseInt(form.capacity) })
+      body: JSON.stringify({ ...form, organization_id: id, capacity: parseInt(form.capacity), trainer_id: form.trainer_id || null })
     })
     const data = await res.json()
     if (res.ok) {
@@ -167,6 +167,16 @@ export default function OrgSessionsPage() {
                 <label className="block text-xs font-semibold text-gray-500 mb-1">END TIME *</label>
                 <input value={form.end_time} onChange={e => setForm({...form, end_time: e.target.value})}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" type="time" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold text-gray-500 mb-1">TRAINER (Optional)</label>
+                <select value={form.trainer_id} onChange={e => setForm({...form, trainer_id: e.target.value})}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none">
+                  <option value="">No trainer assigned</option>
+                  {members.map(m => (
+                    <option key={m.id} value={m.users?.id}>{m.users?.full_name || m.users?.email}</option>
+                  ))}
+                </select>
               </div>
               {form.recurrence_type === 'weekly' && (
                 <div className="md:col-span-2">
