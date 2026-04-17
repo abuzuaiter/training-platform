@@ -322,6 +322,19 @@ export default function OrgCalendarPage() {
                 <span className="text-xs text-gray-500">👥 {selectedSession.booked_count}/{selectedSession.capacity}</span>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${selectedSession.status === 'scheduled' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'}`}>{selectedSession.status}</span>
               </div>
+              <div className="mt-2">
+                <label className="block text-xs font-semibold text-gray-500 mb-1">TRAINER</label>
+                <select
+                  defaultValue={selectedSession.trainer_id || ''}
+                  onChange={e => assignTrainer(selectedSession.id, e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:border-blue-400">
+                  <option value="">No trainer</option>
+                  {members.map((m: any) => (
+                    <option key={m.id} value={m.users?.id}>{m.users?.full_name || m.users?.email}</option>
+                  ))}
+                </select>
+
+              </div>
 
               <div className="flex gap-2 mb-4 flex-wrap">
                 <button onClick={() => copyLink(selectedSession.id)} className="text-xs px-2 py-1.5 rounded-lg bg-purple-50 text-purple-600 font-semibold hover:bg-purple-100">
