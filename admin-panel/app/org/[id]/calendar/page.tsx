@@ -352,6 +352,12 @@ export default function OrgCalendarPage() {
                   {copied ? '✅ Copied!' : '🔗 Copy Link'}
                 </button>
                 <button onClick={() => handleDelete(selectedSession.id)} className="text-xs px-2 py-1.5 rounded-lg bg-red-50 text-red-600 font-semibold hover:bg-red-100">🗑️ Delete</button>
+                <button
+                  onClick={async () => { setSavingTrainer(true); await assignTrainer(selectedSession.id, selectedTrainer); setSavingTrainer(false) }}
+                  disabled={savingTrainer}
+                  className="text-xs px-2 py-1.5 rounded-lg bg-blue-50 text-blue-600 font-semibold hover:bg-blue-100 disabled:opacity-50">
+                  {savingTrainer ? 'Saving...' : '💾 Save'}
+                </button>
               </div>
 
               <div className="border-t border-gray-100 pt-4">
