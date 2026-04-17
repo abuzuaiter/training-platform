@@ -19,6 +19,7 @@ export default function OrgCalendarPage() {
   const params = useParams()
   const id = params.id as string
   const [sessions, setSessions] = useState<any[]>([])
+  const [members, setMembers] = useState<any[]>([])
   const [customers, setCustomers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<'month' | 'week' | 'day'>('week')
@@ -41,11 +42,13 @@ export default function OrgCalendarPage() {
     setLoading(true)
     const [sessRes, custRes, actRes] = await Promise.all([
       fetch(`/api/calendar-sessions?org_id=${id}`),
+      fetch(`/api/organizations/${id}/members`),
       fetch(`/api/organizations/${id}/customers`),
       fetch(`/api/activities?org_id=${id}`)
     ])
-    const [sessData, custData, actData] = await Promise.all([sessRes.json(), custRes.json(), actRes.json()])
+    const [sessData, membData, custData, actData] = await Promise.all([sessRes.json(), membRes.json(), custRes.json(), actRes.json()])
     setSessions(Array.isArray(sessData) ? sessData : [])
+    setMembers(Array.isArray(membData) ? membData : [])
     setCustomers(custData || [])
       setLoading(false)
   }
