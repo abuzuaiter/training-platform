@@ -150,6 +150,15 @@ export default function OrgCalendarPage() {
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
+  async function assignTrainer(sessionId: string, trainerId: string) {
+    await fetch(`/api/calendar-sessions/${sessionId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ trainer_id: trainerId || null })
+    })
+    const r = await fetch(`/api/calendar-sessions/${sessionId}`)
+    setSelectedSession(await r.json())
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white border-b border-gray-200 px-6 py-4">
