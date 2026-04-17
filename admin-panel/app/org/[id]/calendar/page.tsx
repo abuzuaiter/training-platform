@@ -25,6 +25,8 @@ export default function OrgCalendarPage() {
   const [view, setView] = useState<'month' | 'week' | 'day'>('week')
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedSession, setSelectedSession] = useState<any | null>(null)
+  const [selectedTrainer, setSelectedTrainer] = useState<string>('')
+  const [savingTrainer, setSavingTrainer] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [showBookForm, setShowBookForm] = useState(false)
   const [showBulkForm, setShowBulkForm] = useState(false)
@@ -73,7 +75,7 @@ export default function OrgCalendarPage() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ session_id: selectedSession.id, customer_id: bookForm.customer_id, organization_id: id })
     })
-    if (res.ok) { setMessage('Booking confirmed!'); setShowBookForm(false); setBookForm({ customer_id: '' }); loadAll(); const r = await fetch(`/api/calendar-sessions/${selectedSession.id}`); setSelectedSession(await r.json()) }
+    if (res.ok) { setMessage('Booking confirmed!'); setShowBookForm(false); setBookForm({ customer_id: '' }); loadAll(); const r = await fetch(`/api/calendar-sessions/${selectedSession.id}`); const s = await r.json(); setSelectedSession(s); setSelectedTrainer(s.trainer_id || '') }
     else { const d = await res.json(); setMessage(d.error || 'Error') }
     setSaving(false)
   }
@@ -97,7 +99,7 @@ export default function OrgCalendarPage() {
 
   async function handleCancelBooking(bookingId: string) {
     await fetch(`/api/calendar-bookings/${bookingId}`, { method: 'DELETE' })
-    if (selectedSession) { const r = await fetch(`/api/calendar-sessions/${selectedSession.id}`); setSelectedSession(await r.json()) }
+    if (selectedSession) { const r = await fetch(`/api/calendar-sessions/${selectedSession.id}`); const s = await r.json(); setSelectedSession(s); setSelectedTrainer(s.trainer_id || '') }
     loadAll()
   }
 
@@ -332,10 +334,10 @@ export default function OrgCalendarPage() {
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${selectedSession.status === 'scheduled' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'}`}>{selectedSession.status}</span>
               </div>
               <div className="mt-2">
-                <label className="block text-xs font-semibold text-gray-500 mb-1">TRAINER</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">ASSIGNED TO</label>
                 <select
-                  defaultValue={selectedSession.trainer_id || ''}
-                  onChange={e => assignTrainer(selectedSession.id, e.target.value)}
+                  value={selectedTrainer}
+                  onChange={e => setSelectedTrainer(e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:border-blue-400">
                   <option value="">No trainer</option>
                   {members.map((m: any) => (
