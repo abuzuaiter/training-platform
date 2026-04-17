@@ -345,8 +345,8 @@ export default function OrgCalendarPage() {
                   onChange={e => setSelectedTrainer(e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:border-blue-400">
                   <option value="">No trainer</option>
-                  {members.map((m: any) => (
-                    <option key={m.id} value={m.users?.id}>{m.users?.full_name || m.users?.email}</option>
+                  {members.filter((m: any) => m.user_id && m.status === 'active').map((m: any) => (
+                    <option key={m.id} value={m.user_id}>{m.users?.full_name || m.users?.email || m.email}</option>
                   ))}
                 </select>
 
