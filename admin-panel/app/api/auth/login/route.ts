@@ -63,8 +63,11 @@ export async function POST(req: NextRequest) {
 
         role = 'org_member'
         organization_id = pendingMember.organization_id
-        permissions = { member_role: pendingMember.role }
-        permissions = { member_role: pendingMember.role }
+        const { data: pendingFull } = await supabaseAdmin
+          .from('organization_members')
+          .select('role, allowed_pages')
+          .eq('id', pendingMember.id).single()
+        permissions = { member_role: pendingMember.role, allowed_pages: pendingFull?.allowed_pages || ['dashboard','calendar'] }
       } else {
         // Check if already active member
         const { data: activeMember } = await supabaseAdmin
@@ -78,6 +81,13 @@ export async function POST(req: NextRequest) {
         if (activeMember) {
           role = 'org_member'
           organization_id = activeMember.organization_id
+          const { data: activeFull } = await supabaseAdmin
+            .from('organization_members')
+            .select('role, allowed_pages')
+            .eq('user_id', data.user.id)
+            .eq('status', 'active')
+            .limit(1).maybeSingle()
+          permissions = { member_role: activeFull?.role || activeMember.role, allowed_pages: activeFull?.allowed_pages || ['dashboard','calendar'] }
         } else {
           // Check custom role
           const { data: userRole } = await supabaseAdmin

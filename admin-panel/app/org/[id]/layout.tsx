@@ -10,6 +10,7 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [org, setOrg] = useState<any>(null)
   const [plan, setPlan] = useState<any>(null)
+  const [navLinks, setNavLinks] = useState<typeof links | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -23,7 +24,7 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
   }
 
   const base = `/org/${id}`
-  const links = [
+  const allLinks = [
     { href: `${base}/dashboard`, label: 'Dashboard' },
     { href: `${base}/calendar`, label: 'Calendar' },
     { href: `${base}/sessions`, label: 'Sessions' },
@@ -34,6 +35,21 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
     { href: `${base}/reports`, label: 'Reports' },
     { href: `${base}/members`, label: 'Team' },
   ]
+  const links = navLinks ?? allLinks
+
+  useEffect(() => {
+    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => {
+      if (!d || d.role === 'org_admin' || d.role === 'super_admin') {
+        setNavLinks(allLinks)
+        return
+      }
+      const allowed: string[] = d.permissions?.allowed_pages || ['dashboard', 'calendar']
+      setNavLinks(allLinks.filter(l => {
+        const page = l.href.split('/').pop() || 'dashboard'
+        return allowed.includes(page)
+      }))
+    })
+  }, [id])
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
