@@ -160,9 +160,8 @@ export default function OrgCalendarPage() {
     })
     const resData = await res.json()
     console.log('PATCH response:', res.status, resData)
-    if (res.ok) {
-      const r = await fetch(`/api/calendar-sessions/${sessionId}`)
-      const updated = await r.json()
+    if (resData && !resData.error) {
+      const updated = resData
       setSelectedSession(updated)
       setSelectedTrainer(updated.trainer_id || '')
       loadAll()
