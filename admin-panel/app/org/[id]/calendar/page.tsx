@@ -39,6 +39,7 @@ export default function OrgCalendarPage() {
   const [recurring, setRecurring] = useState({ is_recurring: false, recurrence_type: 'weekly', recurrence_days: [] as string[], recurrence_end_date: '' })
 
   useEffect(() => { if (id) loadAll() }, [id])
+  useEffect(() => { setSelectedTrainer(selectedSession?.trainer_id || '') }, [selectedSession])
 
   async function loadAll() {
     setLoading(true)
