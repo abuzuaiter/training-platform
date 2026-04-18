@@ -26,6 +26,8 @@ export default function OrgTeamPage() {
   const [saving, setSaving] = useState<string | null>(null)
   const [editId, setEditId] = useState<string | null>(null)
   const [editRole, setEditRole] = useState('')
+  const [editAllowedPages, setEditAllowedPages] = useState<string[]>([])
+  const [editAllowedPages, setEditAllowedPages] = useState<string[]>([])
 
   useEffect(() => { if (id) load() }, [id])
 
@@ -188,6 +190,34 @@ export default function OrgTeamPage() {
                                 className="text-xs px-2 py-1 rounded-lg bg-blue-600 text-white font-semibold">
                                 {saving === m.id ? '...' : 'Save'}
                               </button>
+                              <div className="mt-3">
+                                <p className="text-xs font-semibold text-gray-500 mb-2">ALLOWED PAGES</p>
+                                <div className="grid grid-cols-2 gap-1">
+                                  {['dashboard','calendar','sessions','customers','enrollments','packages','invoices','reports','members'].map(page => (
+                                    <label key={page} className="flex items-center gap-1.5 cursor-pointer">
+                                      <input type="checkbox"
+                                        checked={editAllowedPages.includes(page)}
+                                        onChange={e => setEditAllowedPages(e.target.checked ? [...editAllowedPages, page] : editAllowedPages.filter(p => p !== page))}
+                                        className="w-3.5 h-3.5 accent-blue-600" />
+                                      <span className="text-xs text-gray-600 capitalize">{page}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="mt-3">
+                                <p className="text-xs font-semibold text-gray-500 mb-2">ALLOWED PAGES</p>
+                                <div className="grid grid-cols-2 gap-1">
+                                  {['dashboard','calendar','sessions','customers','enrollments','packages','invoices','reports','members'].map(page => (
+                                    <label key={page} className="flex items-center gap-1.5 cursor-pointer">
+                                      <input type="checkbox"
+                                        checked={editAllowedPages.includes(page)}
+                                        onChange={e => setEditAllowedPages(e.target.checked ? [...editAllowedPages, page] : editAllowedPages.filter(p => p !== page))}
+                                        className="w-3.5 h-3.5 accent-blue-600" />
+                                      <span className="text-xs text-gray-600 capitalize">{page}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
                               <button onClick={() => setEditId(null)}
                                 className="text-xs px-2 py-1 rounded-lg border border-gray-200 text-gray-600">
                                 Cancel
@@ -198,7 +228,7 @@ export default function OrgTeamPage() {
                               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleColors[m.role] || 'bg-gray-50 text-gray-600'}`}>
                                 {m.role}
                               </span>
-                              <button onClick={() => { setEditId(m.id); setEditRole(m.role) }}
+                              <button onClick={() => { setEditId(m.id); setEditRole(m.role); setEditAllowedPages(m.allowed_pages || []) }}
                                 className="text-xs px-2 py-1 rounded-lg bg-gray-50 text-gray-600 font-semibold hover:bg-gray-100 transition">
                                 Edit
                               </button>
