@@ -154,15 +154,12 @@ export default function OrgCalendarPage() {
   const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
   async function assignTrainer(sessionId: string, trainerId: string) {
-    console.log('Assigning trainer:', trainerId, 'to session:', sessionId)
     const res = await fetch(`/api/calendar-sessions/${sessionId}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ trainer_id: trainerId || null })
     })
-    const resData = await res.json()
-    console.log('PATCH response:', res.status, resData)
-    if (resData && !resData.error) {
-      const updated = resData
+    const updated = await res.json()
+    if (updated && !updated.error) {
       setSelectedSession(updated)
       setSelectedTrainer(updated.trainer_id || '')
       loadAll()
