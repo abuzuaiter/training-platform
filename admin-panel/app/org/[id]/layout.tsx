@@ -30,8 +30,10 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
     fetch(`/api/organizations/${id}/plans`).then(r => r.ok ? r.json() : null).then(d => setPlan(d?.[0] || null))
     fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => {
       if (!d || d.role === 'org_admin' || d.role === 'super_admin') return
-      const allowed: string[] = d.permissions?.allowed_pages || ['dashboard', 'calendar']
-      setVisibleLinks(ALL_LINKS.filter(l => allowed.includes(l.href)))
+      const allowed: string[] = d.permissions?.allowed_pages || []
+      if (allowed.length > 0) {
+        setVisibleLinks(ALL_LINKS.filter(l => allowed.includes(l.href)))
+      }
     })
   }, [id])
 
