@@ -89,10 +89,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { member_id, role, status } = await req.json()
+  const { member_id, role, status, allowed_pages } = await req.json()
   const updateData: any = {}
   if (role) updateData.role = role
-  if (status) updateData.status = status
+  if (status !== undefined) updateData.status = status
+  if (allowed_pages !== undefined) updateData.allowed_pages = allowed_pages
   const { data, error } = await supabaseAdmin
     .from('organization_members')
     .update(updateData)
