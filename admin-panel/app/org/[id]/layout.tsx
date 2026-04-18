@@ -3,6 +3,18 @@ import { useEffect, useState } from 'react'
 import { useParams, usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+const ALL_LINKS = [
+  { href: 'dashboard', label: 'Dashboard' },
+  { href: 'calendar', label: 'Calendar' },
+  { href: 'sessions', label: 'Sessions' },
+  { href: 'customers', label: 'Customers' },
+  { href: 'enrollments', label: 'Enrollments' },
+  { href: 'packages', label: 'Packages' },
+  { href: 'invoices', label: 'Invoices' },
+  { href: 'reports', label: 'Reports' },
+  { href: 'members', label: 'Team' },
+]
+
 export default function OrgLayout({ children }: { children: React.ReactNode }) {
   const params = useParams()
   const id = params.id as string
@@ -10,12 +22,17 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [org, setOrg] = useState<any>(null)
   const [plan, setPlan] = useState<any>(null)
-  const [navLinks, setNavLinks] = useState<typeof links | null>(null)
+  const [visibleLinks, setVisibleLinks] = useState(ALL_LINKS)
 
   useEffect(() => {
     if (!id) return
     fetch(`/api/organizations/${id}`).then(r => r.ok ? r.json() : null).then(d => setOrg(d))
     fetch(`/api/organizations/${id}/plans`).then(r => r.ok ? r.json() : null).then(d => setPlan(d?.[0] || null))
+    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => {
+      if (!d || d.role === 'org_admin' || d.role === 'super_admin') return
+      const allowed: string[] = d.permissions?.allowed_pages || ['dashboard', 'calendar']
+      setVisibleLinks(ALL_LINKS.filter(l => allowed.includes(l.href)))
+    })
   }, [id])
 
   async function handleLogout() {
@@ -23,39 +40,11 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
     router.push('/login')
   }
 
-  const base = `/org/${id}`
-  const allLinks = [
-    { href: `${base}/dashboard`, label: 'Dashboard' },
-    { href: `${base}/calendar`, label: 'Calendar' },
-    { href: `${base}/sessions`, label: 'Sessions' },
-    { href: `${base}/customers`, label: 'Customers' },
-    { href: `${base}/enrollments`, label: 'Enrollments' },
-    { href: `${base}/packages`, label: 'Packages' },
-    { href: `${base}/invoices`, label: 'Invoices' },
-    { href: `${base}/reports`, label: 'Reports' },
-    { href: `${base}/members`, label: 'Team' },
-  ]
-  const links = navLinks ?? allLinks
-
-  useEffect(() => {
-    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => {
-      if (!d || d.role === 'org_admin' || d.role === 'super_admin') {
-        setNavLinks(allLinks)
-        return
-      }
-      const allowed: string[] = d.permissions?.allowed_pages || ['dashboard', 'calendar']
-      setNavLinks(allLinks.filter(l => {
-        const page = l.href.split('/').pop() || 'dashboard'
-        return allowed.includes(page)
-      }))
-    })
-  }, [id])
-
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <div className="w-60 bg-white border-r border-gray-200 flex flex-col fixed h-full z-10">
 
-        {/* Logo / Org */}
+        {/* Logo */}
         <div className="px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
             {org?.logo_url ? (
@@ -74,10 +63,11 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
-          {links.map(link => {
-            const active = pathname === link.href || (link.href !== `${base}/dashboard` && pathname.startsWith(link.href))
+          {visibleLinks.map(link => {
+            const href = `/org/${id}/${link.href}`
+            const active = pathname === href || (link.href !== 'dashboard' && pathname.startsWith(href))
             return (
-              <Link key={link.href} href={link.href}>
+              <Link key={link.href} href={href}>
                 <div className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${active ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
                   {link.label}
                 </div>
