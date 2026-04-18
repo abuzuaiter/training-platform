@@ -11,7 +11,7 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
   const [org, setOrg] = useState<any>(null)
   const [plan, setPlan] = useState<any>(null)
   const [allowedPages, setAllowedPages] = useState<string[]>([])
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(true)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -25,6 +25,7 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
         return
       }
       if (d.role === 'org_member') {
+        setIsAdmin(false)
         const memRes = await fetch(`/api/organizations/${id}/members`)
         const members = memRes.ok ? await memRes.json() : []
         const me = members.find((m: any) => m.users?.email === d.email || m.email === d.email)
@@ -33,8 +34,6 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
         } else {
           setAllowedPages(['dashboard', 'calendar'])
         }
-      } else {
-        setIsAdmin(true)
       }
       setMounted(true)
     })
