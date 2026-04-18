@@ -18,10 +18,21 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
     if (!id) return
     fetch(`/api/organizations/${id}`).then(r => r.ok ? r.json() : null).then(d => setOrg(d))
     fetch(`/api/organizations/${id}/plans`).then(r => r.ok ? r.json() : null).then(d => setPlan(d?.[0] || null))
-    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => {
-      if (d?.role === 'org_admin') { setIsAdmin(true) }
-      else if (d?.permissions?.allowed_pages) setAllowedPages(d.permissions.allowed_pages)
-      else setAllowedPages(['dashboard','calendar'])
+    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(async d => {
+      if (!d || d.role === 'org_admin' || d.role === 'super_admin') {
+        setIsAdmin(true)
+        setMounted(true)
+        return
+      }
+      // Get member's allowed_pages
+      const memRes = await fetch(`/api/organizations/${id}/members`)
+      const members = memRes.ok ? await memRes.json() : []
+      const me = members.find((m: any) => m.users?.email === d.email || m.email === d.email)
+      if (me?.allowed_pages && me.allowed_pages.length > 0) {
+        setAllowedPages(me.allowed_pages)
+      } else {
+        setAllowedPages(['dashboard', 'calendar'])
+      }
       setMounted(true)
     })
   }, [id])
