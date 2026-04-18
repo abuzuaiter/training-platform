@@ -79,8 +79,7 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
         {/* Nav */}
         <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
           {links.filter(link => {
-            if (!mounted) return true
-            if (isAdmin) return true
+            if (!mounted || isAdmin) return true
             const page = link.href.split('/').pop() || 'dashboard'
             return allowedPages.includes(page)
           }).map(link => {
