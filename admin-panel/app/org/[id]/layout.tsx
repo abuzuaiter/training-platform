@@ -81,11 +81,11 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
-          {links.filter(link => {
-            if (!mounted || isAdmin) return true
+          {(!mounted ? links : links.filter(link => {
+            if (isAdmin) return true
             const page = link.href.split('/').pop() || 'dashboard'
             return allowedPages.includes(page)
-          }).map(link => {
+          })).map(link => {
             const active = pathname === link.href || (link.href !== `${base}/dashboard` && pathname.startsWith(link.href))
             return (
               <Link key={link.href} href={link.href}>
