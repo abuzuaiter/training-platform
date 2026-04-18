@@ -24,14 +24,17 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
         setMounted(true)
         return
       }
-      // Get member's allowed_pages
-      const memRes = await fetch(`/api/organizations/${id}/members`)
-      const members = memRes.ok ? await memRes.json() : []
-      const me = members.find((m: any) => m.users?.email === d.email || m.email === d.email)
-      if (me?.allowed_pages && me.allowed_pages.length > 0) {
-        setAllowedPages(me.allowed_pages)
+      if (d.role === 'org_member') {
+        const memRes = await fetch(`/api/organizations/${id}/members`)
+        const members = memRes.ok ? await memRes.json() : []
+        const me = members.find((m: any) => m.users?.email === d.email || m.email === d.email)
+        if (me?.allowed_pages && me.allowed_pages.length > 0) {
+          setAllowedPages(me.allowed_pages)
+        } else {
+          setAllowedPages(['dashboard', 'calendar'])
+        }
       } else {
-        setAllowedPages(['dashboard', 'calendar'])
+        setIsAdmin(true)
       }
       setMounted(true)
     })
