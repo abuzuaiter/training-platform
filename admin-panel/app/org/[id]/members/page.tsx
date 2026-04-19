@@ -97,15 +97,17 @@ export default function OrgTeamPage() {
   }
 
   function downloadTemplate() {
-    const csv = `email,role
+    const csv = `email,role,allowed_pages
 # INSTRUCTIONS:
 # email: Required. Member email address
 # role: Required. admin / coach / trainer / doctor / therapist / receptionist / other
+# allowed_pages: Optional. Pages separated by | e.g. dashboard|calendar|sessions
+# Available pages: dashboard|calendar|sessions|customers|enrollments|packages|invoices|reports|members
 # Members will receive an invitation and activate on first login
 # Delete comment lines before importing
-coach@example.com,coach
-trainer@example.com,trainer
-doctor@example.com,doctor`
+coach@example.com,coach,dashboard|calendar
+trainer@example.com,trainer,dashboard|calendar|sessions
+doctor@example.com,doctor,dashboard|calendar|customers`
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
     a.download = 'team-template.csv'; a.click()
@@ -124,7 +126,7 @@ doctor@example.com,doctor`
       if (!row.email) { failed++; continue }
       const res = await fetch(`/api/organizations/${id}/members`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: row.email, role: row.role || 'coach' })
+        body: JSON.stringify({ email: row.email, role: row.role || 'coach', allowed_pages: row.allowed_pages ? row.allowed_pages.split('|') : ['dashboard','calendar'] })
       })
       if (res.ok) success++; else failed++
     }

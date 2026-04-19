@@ -41,7 +41,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { user_id, email, role, status } = await req.json()
+  const { user_id, email, role, status, allowed_pages } = await req.json()
 
   if (email) {
     // Check if already a member
@@ -67,7 +67,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         user_id: existingUser?.id || null,
         email,
         role: role || 'coach',
-        status: existingUser ? 'active' : 'pending'
+        status: existingUser ? 'active' : 'pending',
+        allowed_pages: allowed_pages || null
       })
       .select().single()
 
