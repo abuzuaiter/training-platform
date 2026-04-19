@@ -23,7 +23,21 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data || [])
+  
+  // Add trainer names
+  const trainerIds = [...new Set((data || []).map((s: any) => s.trainer_id).filter(Boolean))]
+  let trainersMap: Record<string, any> = {}
+  if (trainerIds.length > 0) {
+    const { data: trainers } = await supabaseAdmin
+      .from('users').select('id, full_name, email').in('id', trainerIds)
+    if (trainers) trainers.forEach((t: any) => { trainersMap[t.id] = t })
+  }
+  const result = (data || []).map((s: any) => ({
+    ...s,
+    trainer: s.trainer_id ? trainersMap[s.trainer_id] || null : null
+  }))
+  
+  return NextResponse.json(result)
 }
 
 export async function POST(req: NextRequest) {

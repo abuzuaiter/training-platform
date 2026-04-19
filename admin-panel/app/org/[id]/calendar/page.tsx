@@ -175,7 +175,7 @@ export default function OrgCalendarPage() {
             <span className="text-gray-300">/</span>
             <span className="text-gray-900 font-semibold text-sm">Calendar</span>
           </div>
-          <button onClick={() => setShowForm(true)} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition">+ New Session</button>
+
         </div>
       </nav>
 
