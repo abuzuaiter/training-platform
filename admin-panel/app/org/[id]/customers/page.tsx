@@ -76,6 +76,51 @@ export default function OrgCustomersPage() {
     c.customer_code?.toLowerCase().includes(search.toLowerCase())
   )
 
+  function exportCSV() {
+    const headers = ['full_name','mobile','email','gender','date_of_birth']
+    const rows = customers.map(c => [c.full_name, c.mobile||'', c.email||'', c.gender||'', c.date_of_birth||''])
+    const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n')
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}))
+    a.download = 'customers.csv'; a.click()
+  }
+
+  function downloadTemplate() {
+    const csv = `full_name,mobile,email,gender,date_of_birth
+# INSTRUCTIONS:
+# full_name: Required. Customer full name
+# mobile: Optional. Phone number e.g. +97412345678
+# email: Optional. Email address
+# gender: Optional. male or female
+# date_of_birth: Optional. Format YYYY-MM-DD
+# Delete these comment lines before importing
+Ahmed Ali,+97412345678,ahmed@email.com,male,1990-01-15
+Sara Mohammed,+97487654321,sara@email.com,female,1995-06-20`
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}))
+    a.download = 'customers-template.csv'; a.click()
+  }
+
+  async function importCSV(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return
+    const text = await file.text()
+    const lines = text.split('\n').filter(l => l.trim() && !l.startsWith('#'))
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g,''))
+    let success = 0, failed = 0
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim().replace(/"/g,''))
+      const row: any = {}
+      headers.forEach((h, idx) => { row[h] = values[idx] || '' })
+      if (!row.full_name) { failed++; continue }
+      const res = await fetch(`/api/organizations/${id}/customers`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...row, organization_id: id })
+      })
+      if (res.ok) success++; else failed++
+    }
+    alert(`Imported: ${success} success, ${failed} failed`)
+    e.target.value = ''
+    load()
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white border-b border-gray-200 px-6 py-4">
@@ -91,7 +136,15 @@ export default function OrgCustomersPage() {
             <h1 className="text-2xl font-bold text-gray-900">Customers</h1>
             <p className="text-gray-500 text-sm mt-1">{filtered.length} of {customers.length} customers</p>
           </div>
-          <button onClick={() => setShowForm(!showForm)} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition">+ Add Customer</button>
+          <div className="flex gap-2">
+            <button onClick={downloadTemplate} className="border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">📋 Template</button>
+            <label className="cursor-pointer border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">
+              📥 Import
+              <input type="file" accept=".csv" onChange={importCSV} className="hidden" />
+            </label>
+            <button onClick={exportCSV} className="border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">📤 Export</button>
+            <button onClick={() => setShowForm(!showForm)} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition">+ Add Customer</button>
+          </div>
         </div>
 
         <input value={search} onChange={e => setSearch(e.target.value)}
