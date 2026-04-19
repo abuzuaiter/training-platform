@@ -116,29 +116,35 @@ doctor@example.com,doctor,dashboard|calendar|customers`
   async function importCSV(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return
     const text = await file.text()
-    const lines = text.split('\n').filter(l => l.trim() && !l.startsWith('#'))
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''))
-    let success = 0, failed = 0
-    for (let i = 1; i < lines.length; i++) {
-      // Handle CSV with allowed_pages containing | character
-      const line = lines[i]
-      const parts = line.split(',')
-      const row: any = {}
-      // First two columns: email, role
-      row[headers[0]] = (parts[0] || '').trim().replace(/"/g, '')
-      row[headers[1]] = (parts[1] || '').trim().replace(/"/g, '')
-      // Third column: everything else joined (allowed_pages with | separators)
-      if (headers[2]) {
-        row[headers[2]] = parts.slice(2).join(',').trim().replace(/"/g, '')
-      }
-      if (!row.email || row.email.startsWith('#')) { failed++; continue }
+    const lines = text.split('\n').filter(l => {
+      const trimmed = l.trim()
+      return trimmed && !trimmed.startsWith('#') && !trimmed.startsWith('\uFEFF#')
+    })
+    if (lines.length < 2) { alert('No data found in file'); e.target.value = ''; return }
+    const sep = lines[0].includes('\t') ? '\t' : ','
+    const firstLine = lines[0].toLowerCase().replace(/"/g, '')
+    const isHeaderRow = firstLine.includes('email') && firstLine.includes('role')
+    const dataStart = isHeaderRow ? 1 : 0
+    let success = 0, failed = 0, errors: string[] = []
+    for (let i = dataStart; i < lines.length; i++) {
+      const parts = lines[i].split(sep).map(p => p.trim().replace(/"/g, ''))
+      const email = parts[0] || ''
+      const role = parts[1] || 'coach'
+      const allowed_pages = parts[2] ? parts[2].split('|').map(p => p.trim()).filter(Boolean) : ['dashboard','calendar']
+      if (!email || !email.includes('@')) { failed++; errors.push(`Row ${i+1}: Invalid email "${email}"`); continue }
+      if (!ROLES.includes(role)) { failed++; errors.push(`Row ${i+1}: Invalid role "${role}"`); continue }
       const res = await fetch(`/api/organizations/${id}/members`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: row.email.trim(), role: (row.role || 'coach').trim(), allowed_pages: row.allowed_pages ? row.allowed_pages.trim().split('|') : ['dashboard','calendar'] })
+        body: JSON.stringify({ email, role, allowed_pages })
       })
-      if (res.ok) success++; else if (res.status !== 400) failed++
+      if (res.ok) { success++ } else {
+        const d = await res.json().catch(() => ({}))
+        if (res.status !== 400) { failed++; errors.push(`Row ${i+1} (${email}): ${d.error || 'HTTP '+res.status}`) }
+      }
     }
-    alert(`Imported: ${success} success, ${failed} failed`)
+    const msg = [`✅ Success: ${success}`, `❌ Failed: ${failed}`]
+    if (errors.length) msg.push('\nErrors:\n' + errors.join('\n'))
+    alert(msg.join('\n'))
     e.target.value = ''
     load()
   }
