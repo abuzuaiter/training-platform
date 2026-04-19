@@ -138,8 +138,8 @@ export default function OrgSessionsPage() {
 # recurrence_days: Days separated by | e.g. sunday|tuesday|thursday
 # assigned_to: Optional. Leave empty
 # Delete comment lines before importing
-Swimming Level 1,08:00,09:00,10,weekly,sunday|tuesday|thursday
-Yoga Class,18:00,19:00,8,weekly,monday|wednesday`
+Swimming Level 1,08:00,09:00,10,weekly,sunday|tuesday|thursday,
+Yoga Class,18:00,19:00,8,weekly,monday|wednesday,`
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
     a.download = 'sessions-template.csv'; a.click()
