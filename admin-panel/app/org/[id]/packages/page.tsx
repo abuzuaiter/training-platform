@@ -84,6 +84,67 @@ export default function OrgPackagesPage() {
     load()
   }
 
+  function exportCSV() {
+    const headers = ['name','price','sessions_count','capacity','absence_policy','enable_notification']
+    const rows = packages.map(p => [
+      p.name, p.price, p.sessions_count || '', p.capacity || '',
+      p.absence_policy || 'deduct', p.enable_notification ? 'true' : 'false'
+    ])
+    const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n')
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+    a.download = 'packages.csv'; a.click()
+  }
+
+  function downloadTemplate() {
+    const csv = `name,price,sessions_count,capacity,absence_policy,enable_notification
+# INSTRUCTIONS:
+# name: Required. Package name e.g. "Beginner Swimming - 8 Sessions"
+# price: Required. Price in QAR e.g. 350
+# sessions_count: Required. Number of sessions e.g. 8
+# capacity: Optional. Max students per package e.g. 10
+# absence_policy: deduct / postpone (default: deduct)
+# enable_notification: true / false - notify when 2 sessions remaining
+# Delete comment lines before importing
+Beginner Swimming - 8 Sessions,350,8,10,deduct,true
+Advanced Swimming - 12 Sessions,500,12,8,postpone,true`
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+    a.download = 'packages-template.csv'; a.click()
+  }
+
+  async function importCSV(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return
+    const text = await file.text()
+    const lines = text.split('\n').filter(l => l.trim() && !l.startsWith('#'))
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''))
+    let success = 0, failed = 0
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''))
+      const row: any = {}
+      headers.forEach((h, idx) => { row[h] = values[idx] || '' })
+      if (!row.name || !row.price) { failed++; continue }
+      const res = await fetch('/api/packages', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organization_id: id,
+          name: row.name,
+          price: parseFloat(row.price),
+          sessions_count: parseInt(row.sessions_count) || null,
+          capacity: parseInt(row.capacity) || null,
+          absence_policy: row.absence_policy || 'deduct',
+          enable_notification: row.enable_notification === 'true',
+          type: 'sessions',
+          is_active: true
+        })
+      })
+      if (res.ok) success++; else failed++
+    }
+    alert(`Imported: ${success} success, ${failed} failed`)
+    e.target.value = ''
+    load()
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
@@ -91,10 +152,18 @@ export default function OrgPackagesPage() {
           <h1 className="text-lg font-bold text-gray-900">Packages</h1>
           <p className="text-xs text-gray-400">{packages.length} packages</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
-          + New Package
-        </button>
+        <div className="flex gap-2">
+          <button onClick={downloadTemplate} className="border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">📋 Template</button>
+          <label className="cursor-pointer border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">
+            📥 Import
+            <input type="file" accept=".csv" onChange={importCSV} className="hidden" />
+          </label>
+          <button onClick={exportCSV} className="border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">📤 Export</button>
+          <button onClick={() => setShowForm(!showForm)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
+            + New Package
+          </button>
+        </div>
       </div>
 
       <div className="max-w-3xl mx-auto px-6 py-8">
