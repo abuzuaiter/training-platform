@@ -87,6 +87,52 @@ export default function OrgTeamPage() {
   const pending = members.filter(m => m.status === 'pending')
   const inactive = members.filter(m => m.status === 'inactive')
 
+  function exportCSV() {
+    const headers = ['email','role','status']
+    const rows = members.map(m => [m.email, m.role, m.status])
+    const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n')
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+    a.download = 'team.csv'; a.click()
+  }
+
+  function downloadTemplate() {
+    const csv = `email,role
+# INSTRUCTIONS:
+# email: Required. Member email address
+# role: Required. admin / coach / trainer / doctor / therapist / receptionist / other
+# Members will receive an invitation and activate on first login
+# Delete comment lines before importing
+coach@example.com,coach
+trainer@example.com,trainer
+doctor@example.com,doctor`
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+    a.download = 'team-template.csv'; a.click()
+  }
+
+  async function importCSV(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return
+    const text = await file.text()
+    const lines = text.split('\n').filter(l => l.trim() && !l.startsWith('#'))
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''))
+    let success = 0, failed = 0
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''))
+      const row: any = {}
+      headers.forEach((h, idx) => { row[h] = values[idx] || '' })
+      if (!row.email) { failed++; continue }
+      const res = await fetch(`/api/organizations/${id}/members`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: row.email, role: row.role || 'coach' })
+      })
+      if (res.ok) success++; else failed++
+    }
+    alert(`Imported: ${success} success, ${failed} failed`)
+    e.target.value = ''
+    load()
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
@@ -94,10 +140,18 @@ export default function OrgTeamPage() {
           <h1 className="text-lg font-bold text-gray-900">Team</h1>
           <p className="text-xs text-gray-400">{active.length} active members</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
-          + Add Member
-        </button>
+        <div className="flex gap-2">
+          <button onClick={downloadTemplate} className="border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">📋 Template</button>
+          <label className="cursor-pointer border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">
+            📥 Import
+            <input type="file" accept=".csv" onChange={importCSV} className="hidden" />
+          </label>
+          <button onClick={exportCSV} className="border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">📤 Export</button>
+          <button onClick={() => setShowForm(!showForm)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
+            + Add Member
+          </button>
+        </div>
       </div>
 
       <div className="max-w-3xl mx-auto px-6 py-8">
