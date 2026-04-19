@@ -71,7 +71,7 @@ export default function OrgSessionsPage() {
     setSaving(true)
     const res = await fetch(`/api/session-templates/${editSession.id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...editForm, capacity: parseInt(editForm.capacity) })
+      body: JSON.stringify({ ...editForm, capacity: parseInt(editForm.capacity), trainer_id: editForm.trainer_id || null })
     })
     if (res.ok) { setMessage('Updated!'); setEditSession(null); load() }
     setSaving(false)
@@ -307,7 +307,7 @@ Yoga Class,18:00,19:00,8,weekly,monday|wednesday`
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => { setEditSession(s); setEditForm({ title: s.title, capacity: String(s.capacity), recurrence_days: s.recurrence_days || [], start_time: s.start_time?.slice(0,5), end_time: s.end_time?.slice(0,5), is_active: s.is_active }) }}
+                    <button onClick={() => { setEditSession(s); setEditForm({ title: s.title, capacity: String(s.capacity), recurrence_days: s.recurrence_days || [], start_time: s.start_time?.slice(0,5), end_time: s.end_time?.slice(0,5), is_active: s.is_active, trainer_id: s.trainer_id || '' }) }}
                       className="text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 font-semibold hover:bg-blue-100 transition">
                       ✏️ Edit
                     </button>
@@ -359,6 +359,16 @@ Yoga Class,18:00,19:00,8,weekly,monday|wednesday`
                         </div>
                       </div>
                     )}
+                    <div className="mb-3">
+                      <label className="block text-xs font-semibold text-gray-500 mb-1">ASSIGNED TO (Optional)</label>
+                      <select value={editForm.trainer_id || ''} onChange={e => setEditForm({...editForm, trainer_id: e.target.value})}
+                        className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none">
+                        <option value="">No one assigned</option>
+                        {members.filter((m: any) => m.user_id).map((m: any) => (
+                          <option key={m.id} value={m.user_id}>{m.users?.full_name || m.email}</option>
+                        ))}
+                      </select>
+                    </div>
                     <div className="flex gap-2">
                       <button onClick={saveEdit} disabled={saving}
                         className="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-700 disabled:opacity-50">
