@@ -120,14 +120,21 @@ doctor@example.com,doctor,dashboard|calendar|customers`
     const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''))
     let success = 0, failed = 0
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''))
+      // Handle CSV with allowed_pages containing | character
+      const line = lines[i]
+      const parts = line.split(',')
       const row: any = {}
-      headers.forEach((h, idx) => { row[h] = values[idx] || '' })
-      console.log('Importing row:', row)
+      // First two columns: email, role
+      row[headers[0]] = (parts[0] || '').trim().replace(/"/g, '')
+      row[headers[1]] = (parts[1] || '').trim().replace(/"/g, '')
+      // Third column: everything else joined (allowed_pages with | separators)
+      if (headers[2]) {
+        row[headers[2]] = parts.slice(2).join(',').trim().replace(/"/g, '')
+      }
       if (!row.email || row.email.startsWith('#')) { failed++; continue }
       const res = await fetch(`/api/organizations/${id}/members`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: row.email, role: row.role || 'coach', allowed_pages: row.allowed_pages ? row.allowed_pages.split('|') : ['dashboard','calendar'] })
+        body: JSON.stringify({ email: row.email.trim(), role: (row.role || 'coach').trim(), allowed_pages: row.allowed_pages ? row.allowed_pages.trim().split('|') : ['dashboard','calendar'] })
       })
       if (res.ok) success++; else if (res.status !== 400) failed++
     }
