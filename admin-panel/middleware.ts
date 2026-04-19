@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/signup', '/api/auth/login', '/api/auth/signup', '/api/auth/logout', '/register', '/api/calendar-sessions', '/api/calendar-bookings', '/api/customers/lookup', '/api/org-invoices']
+const PUBLIC_PATHS = ['/login', '/signup', '/api/auth/login', '/api/auth/signup', '/api/auth/logout', '/register', '/api/calendar-sessions', '/api/calendar-bookings', '/api/customers/lookup', '/api/org-invoices', '/api/organizations']
 
 // Map pages to their route paths
 const PAGE_ROUTES: Record<string, string> = {
