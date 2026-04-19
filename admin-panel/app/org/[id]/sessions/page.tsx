@@ -113,6 +113,69 @@ export default function OrgSessionsPage() {
     return days?.map(d => DAY_NAMES.find(n => n.key === d)?.label).filter(Boolean).join('، ')
   }
 
+  function exportCSV() {
+    const headers = ['title','start_time','end_time','capacity','recurrence_type','recurrence_days','assigned_to']
+    const rows = sessions.map(s => [
+      s.title, s.start_time, s.end_time, s.capacity,
+      s.recurrence_type || 'weekly',
+      (s.recurrence_days || []).join('|'),
+      s.trainer_id || ''
+    ])
+    const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n')
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+    a.download = 'sessions.csv'; a.click()
+  }
+
+  function downloadTemplate() {
+    const csv = `title,start_time,end_time,capacity,recurrence_type,recurrence_days
+# INSTRUCTIONS:
+# title: Required. Session name e.g. "Swimming Level 1"
+# start_time: Required. Format HH:MM e.g. 08:00
+# end_time: Required. Format HH:MM e.g. 09:00
+# capacity: Required. Max students e.g. 10
+# recurrence_type: weekly / single / daily
+# recurrence_days: Days separated by | e.g. sunday|tuesday|thursday
+# assigned_to: Optional. Leave empty
+# Delete comment lines before importing
+Swimming Level 1,08:00,09:00,10,weekly,sunday|tuesday|thursday
+Yoga Class,18:00,19:00,8,weekly,monday|wednesday`
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+    a.download = 'sessions-template.csv'; a.click()
+  }
+
+  async function importCSV(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return
+    const text = await file.text()
+    const lines = text.split('\n').filter(l => l.trim() && !l.startsWith('#'))
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''))
+    let success = 0, failed = 0
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''))
+      const row: any = {}
+      headers.forEach((h, idx) => { row[h] = values[idx] || '' })
+      if (!row.title || !row.start_time || !row.end_time) { failed++; continue }
+      const res = await fetch('/api/session-templates', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organization_id: id,
+          title: row.title,
+          start_time: row.start_time,
+          end_time: row.end_time,
+          capacity: parseInt(row.capacity) || 10,
+          recurrence_type: row.recurrence_type || 'weekly',
+          recurrence_days: row.recurrence_days ? row.recurrence_days.split('|') : [],
+          is_active: true
+        })
+      })
+      if (res.ok) success++; else failed++
+    }
+    alert(`Imported: ${success} success, ${failed} failed`)
+    e.target.value = ''
+    load()
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
@@ -120,10 +183,18 @@ export default function OrgSessionsPage() {
           <h1 className="text-lg font-bold text-gray-900">Sessions</h1>
           <p className="text-xs text-gray-400">Define your weekly schedule</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
-          + New Session
-        </button>
+        <div className="flex gap-2">
+          <button onClick={downloadTemplate} className="border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">📋 Template</button>
+          <label className="cursor-pointer border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">
+            📥 Import
+            <input type="file" accept=".csv" onChange={importCSV} className="hidden" />
+          </label>
+          <button onClick={exportCSV} className="border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">📤 Export</button>
+          <button onClick={() => setShowForm(!showForm)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
+            + New Session
+          </button>
+        </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-6 py-8">
@@ -169,7 +240,7 @@ export default function OrgSessionsPage() {
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" type="time" />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-xs font-semibold text-gray-500 mb-1">TRAINER (Optional)</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">ASSIGNED TO (Optional)</label>
                 <select value={form.trainer_id} onChange={e => setForm({...form, trainer_id: e.target.value})}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none">
                   <option value="">No trainer assigned</option>
