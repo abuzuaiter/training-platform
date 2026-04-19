@@ -128,7 +128,7 @@ doctor@example.com,doctor,dashboard|calendar|customers`
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: row.email, role: row.role || 'coach', allowed_pages: row.allowed_pages ? row.allowed_pages.split('|') : ['dashboard','calendar'] })
       })
-      if (res.ok) success++; else failed++
+      if (res.ok) success++; else if (res.status !== 400) failed++
     }
     alert(`Imported: ${success} success, ${failed} failed`)
     e.target.value = ''
