@@ -123,7 +123,8 @@ doctor@example.com,doctor,dashboard|calendar|customers`
       const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''))
       const row: any = {}
       headers.forEach((h, idx) => { row[h] = values[idx] || '' })
-      if (!row.email) { failed++; continue }
+      console.log('Importing row:', row)
+      if (!row.email || row.email.startsWith('#')) { failed++; continue }
       const res = await fetch(`/api/organizations/${id}/members`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: row.email, role: row.role || 'coach', allowed_pages: row.allowed_pages ? row.allowed_pages.split('|') : ['dashboard','calendar'] })
