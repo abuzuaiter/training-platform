@@ -128,7 +128,7 @@ export default function OrgSessionsPage() {
   }
 
   function downloadTemplate() {
-    const csv = `title,start_time,end_time,capacity,recurrence_type,recurrence_days
+    const csv = `title,start_time,end_time,capacity,recurrence_type,recurrence_days,assigned_to
 # INSTRUCTIONS:
 # title: Required. Session name e.g. "Swimming Level 1"
 # start_time: Required. Format HH:MM e.g. 08:00
