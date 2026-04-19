@@ -82,7 +82,7 @@ export default function OrgCustomersPage() {
   }
 
   function exportCSV() {
-    const headers = ['full_name','mobile','email','gender','date_of_birth','has_guardian','guardian_name','guardian_email','guardian_mobile','notes']
+    const headers = ['customer_code','full_name','mobile','email','gender','date_of_birth','has_guardian','guardian_name','guardian_email','guardian_mobile','notes']
     const rows = customers.map(c => headers.map(h => `"${(c[h] ?? '').toString().replace(/"/g, '')}"`).join(','))
     const csv = [headers.join(','), ...rows].join('\n')
     const a = document.createElement('a')
