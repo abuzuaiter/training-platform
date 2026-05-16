@@ -6,7 +6,10 @@ import Link from 'next/link'
 const navSections = [
   {
     title: 'ANALYTICS',
-    items: [{ href: '/', label: 'Dashboard' }]
+    items: [
+      { href: '/', label: 'Dashboard' },
+      { href: '/reports', label: 'Reports' },
+    ]
   },
   {
     title: 'MANAGEMENT',
