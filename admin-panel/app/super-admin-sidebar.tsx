@@ -16,6 +16,7 @@ const navSections = [
     items: [
       { href: '/organizations', label: 'Organizations' },
       { href: '/plans', label: 'Plans' },
+      { href: '/packages', label: 'Packages' },
       { href: '/invoices', label: 'Invoices' },
       { href: '/customers', label: 'Customers' },
       { href: '/users', label: 'Users' },

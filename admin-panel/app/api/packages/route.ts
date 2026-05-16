@@ -4,7 +4,9 @@ const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, proces
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const org_id = searchParams.get('org_id')
-  let query = supabaseAdmin.from('packages').select('*').order('created_at', { ascending: false })
+  const include_org = searchParams.get('include_org')
+  const selectFields = include_org ? '*, organizations(name)' : '*'
+  let query = supabaseAdmin.from('packages').select(selectFields).order('created_at', { ascending: false })
   if (org_id) query = query.eq('organization_id', org_id)
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
