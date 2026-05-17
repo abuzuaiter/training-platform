@@ -160,10 +160,19 @@ export default function InvoicePage() {
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="border-t border-gray-100 pt-6 text-center">
-              <p className="text-xs text-gray-400">Thank you for your business!</p>
-              <p className="text-xs text-gray-400 mt-1">موعد — Mawid | Smart Appointment Management Platform</p>
+            {/* Stamp + Footer */}
+            <div className="border-t border-gray-100 pt-6">
+              <div className="flex justify-end mb-4">
+                <img
+                  src="https://fgvasfyctknpoweinsre.supabase.co/storage/v1/object/public/org-assets/stamps/Company.jpg"
+                  alt="Company Stamp"
+                  style={{ width: 120, height: 120, objectFit: 'contain', opacity: 0.9 }}
+                />
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-gray-400">Thank you for your business!</p>
+                <p className="text-xs text-gray-400 mt-1">موعد — Mawid | Smart Appointment Management Platform</p>
+              </div>
             </div>
           </div>
         </div>
