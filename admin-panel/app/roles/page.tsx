@@ -7,10 +7,7 @@ const PAGES = [
   { key: 'plans', label: 'Plans', icon: '📦', actions: ['view', 'add', 'edit', 'delete'] },
   { key: 'invoices', label: 'Invoices', icon: '🧾', actions: ['view', 'mark_paid', 'delete'] },
   { key: 'customers', label: 'Customers', icon: '🧑\u200d🤝\u200d🧑', actions: ['view', 'add', 'edit', 'delete'] },
-  { key: 'subscriptions', label: 'Subscriptions', icon: '💳', actions: ['view', 'add', 'edit', 'delete'] },
   { key: 'users', label: 'Users', icon: '👥', actions: ['view', 'edit'] },
-  { key: 'invitations', label: 'Invitations', icon: '✉️', actions: ['view', 'add', 'delete'] },
-  { key: 'activities', label: 'Activities', icon: '📋', actions: ['view', 'add', 'edit', 'delete'] },
   { key: 'audit_logs', label: 'Audit Logs', icon: '🔍', actions: ['view'] },
   { key: 'roles', label: 'Roles', icon: '🔐', actions: ['view', 'add', 'edit', 'delete'] },
 ]

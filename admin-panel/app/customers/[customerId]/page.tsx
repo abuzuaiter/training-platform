@@ -16,16 +16,6 @@ interface Customer {
   status: string
 }
 
-interface Subscription {
-  id: string
-  subscription_type: string
-  price: number
-  start_date: string
-  end_date: string
-  payment_status: string
-  notes: string | null
-}
-
 interface Organization {
   id: string
   name: string
@@ -37,20 +27,15 @@ export default function ManageCustomerPage() {
   const customerId = params.customerId as string
   const router = useRouter()
   const [customer, setCustomer] = useState<Customer | null>(null)
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [customerOrgs, setCustomerOrgs] = useState<string[]>([])
   const [form, setForm] = useState({ full_name: '', email: '', mobile: '', has_guardian: false, guardian_email: '', guardian_mobile: '', notes: '', status: 'active' })
-  const [subForm, setSubForm] = useState({ subscription_type: 'monthly', price: '', start_date: '', end_date: '', payment_status: 'unpaid', notes: '', organization_id: '' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [subSaving, setSubSaving] = useState(false)
-  const [showSubForm, setShowSubForm] = useState(false)
   const [addOrgId, setAddOrgId] = useState('')
   const [message, setMessage] = useState('')
-  const [subMessage, setSubMessage] = useState('')
 
-  useEffect(() => { if (customerId) { loadCustomer(); loadSubscriptions(); loadOrgs() } }, [customerId])
+  useEffect(() => { if (customerId) { loadCustomer(); loadOrgs() } }, [customerId])
 
   async function loadCustomer() {
     const res = await fetch(`/api/customers/${customerId}`)
@@ -63,12 +48,6 @@ export default function ManageCustomerPage() {
       guardian_mobile: data.guardian_mobile || '', notes: data.notes || '', status: data.status || 'active'
     })
     setLoading(false)
-  }
-
-  async function loadSubscriptions() {
-    const res = await fetch(`/api/customers/${customerId}/subscriptions`)
-    const data = await res.json()
-    setSubscriptions(data || [])
   }
 
   async function loadOrgs() {
@@ -101,37 +80,6 @@ export default function ManageCustomerPage() {
     loadCustomer()
   }
 
-  async function handleAddSubscription() {
-    if (!subForm.price || !subForm.start_date || !subForm.end_date) { setSubMessage('Please fill all required fields'); return }
-    setSubSaving(true)
-    const res = await fetch(`/api/customers/${customerId}/subscriptions`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...subForm, price: parseFloat(subForm.price) })
-    })
-    if (res.ok) {
-      setSubMessage('Subscription added!')
-      setSubForm({ subscription_type: 'monthly', price: '', start_date: '', end_date: '', payment_status: 'unpaid', notes: '', organization_id: '' })
-      setShowSubForm(false)
-      loadSubscriptions()
-    } else { const d = await res.json(); setSubMessage(d.error || 'Error') }
-    setSubSaving(false)
-  }
-
-  async function togglePayment(sub: Subscription) {
-    await fetch(`/api/customers/${customerId}/subscriptions/${sub.id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ payment_status: sub.payment_status === 'paid' ? 'unpaid' : 'paid' })
-    })
-    loadSubscriptions()
-  }
-
-  async function deleteSub(subId: string) {
-    await fetch(`/api/customers/${customerId}/subscriptions/${subId}`, { method: 'DELETE' })
-    loadSubscriptions()
-  }
-
-  const activeSubscription = subscriptions.find(s => new Date(s.end_date) >= new Date())
-
   if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">Loading...</div>
 
   return (
@@ -152,11 +100,6 @@ export default function ManageCustomerPage() {
             <h1 className="text-2xl font-bold text-gray-900">{form.full_name}</h1>
             <div className="flex items-center gap-2 mt-1">
               {customer?.customer_code && <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-mono">{customer.customer_code}</span>}
-              {activeSubscription ? (
-                <span className="text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-medium">Active Subscription</span>
-              ) : (
-                <span className="text-xs bg-red-50 text-red-500 px-2 py-0.5 rounded-full font-medium">No Active Subscription</span>
-              )}
             </div>
           </div>
         </div>
@@ -260,123 +203,6 @@ export default function ManageCustomerPage() {
                   </button>
                 </div>
               ))}
-            </div>
-          )}
-        </div>
-
-        {/* Subscriptions */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-900">Subscriptions ({subscriptions.length})</h2>
-            <button onClick={() => setShowSubForm(!showSubForm)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
-              + Add Subscription
-            </button>
-          </div>
-
-          {subMessage && <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-medium ${subMessage.includes('added') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{subMessage}</div>}
-
-          {showSubForm && (
-            <div className="bg-gray-50 rounded-xl p-4 mb-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">ORGANIZATION</label>
-                  <select value={subForm.organization_id} onChange={e => setSubForm({...subForm, organization_id: e.target.value})}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 bg-white">
-                    <option value="">Select organization...</option>
-                    {organizations.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">TYPE *</label>
-                  <select value={subForm.subscription_type} onChange={e => setSubForm({...subForm, subscription_type: e.target.value})}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 bg-white">
-                    <option value="session">Session</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="monthly">Monthly</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">PRICE (QAR) *</label>
-                  <input value={subForm.price} onChange={e => setSubForm({...subForm, price: e.target.value})}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" type="number" placeholder="200" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">PAYMENT STATUS</label>
-                  <select value={subForm.payment_status} onChange={e => setSubForm({...subForm, payment_status: e.target.value})}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 bg-white">
-                    <option value="unpaid">Unpaid</option>
-                    <option value="paid">Paid</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">START DATE *</label>
-                  <input value={subForm.start_date} onChange={e => setSubForm({...subForm, start_date: e.target.value})}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" type="date" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">END DATE *</label>
-                  <input value={subForm.end_date} onChange={e => setSubForm({...subForm, end_date: e.target.value})}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" type="date" />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">NOTES</label>
-                  <input value={subForm.notes} onChange={e => setSubForm({...subForm, notes: e.target.value})}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" placeholder="Optional notes" />
-                </div>
-              </div>
-              <div className="flex gap-3 mt-3">
-                <button onClick={handleAddSubscription} disabled={subSaving}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50">
-                  {subSaving ? 'Saving...' : 'Add'}
-                </button>
-                <button onClick={() => setShowSubForm(false)}
-                  className="border border-gray-200 text-gray-600 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-
-          {subscriptions.length === 0 ? (
-            <p className="text-sm text-gray-400">No subscriptions yet</p>
-          ) : (
-            <div className="space-y-3">
-              {subscriptions.map(s => {
-                const isActive = new Date(s.end_date) >= new Date()
-                return (
-                  <div key={s.id} className={`p-4 rounded-xl border ${isActive ? 'border-green-100 bg-green-50/30' : 'border-gray-100 bg-gray-50/50'}`}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-semibold text-gray-900">{s.price} QAR</span>
-                          <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">{s.subscription_type}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.payment_status === 'paid' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
-                            {s.payment_status === 'paid' ? 'Paid' : 'Unpaid'}
-                          </span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                            {isActive ? 'Active' : 'Expired'}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {new Date(s.start_date).toLocaleDateString()} → {new Date(s.end_date).toLocaleDateString()}
-                        </p>
-                        {s.notes && <p className="text-xs text-gray-400 mt-0.5">{s.notes}</p>}
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => togglePayment(s)}
-                          className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${s.payment_status === 'paid' ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
-                          {s.payment_status === 'paid' ? 'Mark Unpaid' : 'Mark Paid'}
-                        </button>
-                        <button onClick={() => deleteSub(s.id)}
-                          className="text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-600 font-semibold hover:bg-red-100">
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
             </div>
           )}
         </div>

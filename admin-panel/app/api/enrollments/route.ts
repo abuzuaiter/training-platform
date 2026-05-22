@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { logAudit } from '@/lib/audit'
 
 const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
@@ -40,5 +41,54 @@ export async function POST(req: NextRequest) {
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Auto-create calendar_bookings for all upcoming sessions in this series
+  if (session_id) {
+    const now = new Date().toISOString()
+
+    // Get the parent session to find all siblings
+    const { data: parentSession } = await supabaseAdmin
+      .from('calendar_sessions')
+      .select('id, parent_session_id')
+      .eq('id', session_id)
+      .single()
+
+    const rootId = parentSession?.parent_session_id || session_id
+
+    // Get all sessions in this series (the root + all children) that are upcoming
+    const { data: seriesSessions } = await supabaseAdmin
+      .from('calendar_sessions')
+      .select('id')
+      .or(`id.eq.${rootId},parent_session_id.eq.${rootId}`)
+      .gte('start_time', now)
+      .eq('organization_id', organization_id)
+
+    if (seriesSessions && seriesSessions.length > 0) {
+      // Don't duplicate — skip sessions already booked by this customer
+      const { data: existingBookings } = await supabaseAdmin
+        .from('calendar_bookings')
+        .select('session_id')
+        .eq('customer_id', customer_id)
+        .in('session_id', seriesSessions.map((s: any) => s.id))
+
+      const alreadyBooked = new Set((existingBookings || []).map((b: any) => b.session_id))
+
+      const newBookings = seriesSessions
+        .filter((s: any) => !alreadyBooked.has(s.id))
+        .map((s: any) => ({
+          session_id: s.id,
+          customer_id,
+          organization_id,
+          enrollment_id: data.id,
+          status: 'confirmed',
+        }))
+
+      if (newBookings.length > 0) {
+        await supabaseAdmin.from('calendar_bookings').insert(newBookings)
+      }
+    }
+  }
+
+  await logAudit({ action: 'create', entity_type: 'enrollment', entity_id: data.id, organization_id: data.organization_id, details: { customer_id: data.customer_id, package_id: data.package_id } })
   return NextResponse.json(data)
 }

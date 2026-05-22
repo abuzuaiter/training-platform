@@ -86,7 +86,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl p-8 max-w-sm w-full shadow-sm border border-gray-200">
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">موعد — Mawid</h1>
+          <h1 className="text-2xl font-bold text-gray-900">AlMawid</h1>
           <p className="text-gray-500 text-sm mt-1">Session Registration</p>
         </div>
 

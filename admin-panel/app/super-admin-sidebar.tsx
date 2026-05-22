@@ -2,31 +2,35 @@
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import {
+  LayoutDashboard, BarChart2, Building2, Package, FileText,
+  Users, UserCog, Shield, ScrollText, LogOut, CreditCard
+} from 'lucide-react'
 
 const navSections = [
   {
     title: 'ANALYTICS',
     items: [
-      { href: '/', label: 'Dashboard' },
-      { href: '/reports', label: 'Reports' },
+      { href: '/dashboard', label: 'Dashboard',   icon: LayoutDashboard },
+      { href: '/reports', label: 'Reports',      icon: BarChart2 },
     ]
   },
   {
     title: 'MANAGEMENT',
     items: [
-      { href: '/organizations', label: 'Organizations' },
-      { href: '/plans', label: 'Plans' },
-      { href: '/packages', label: 'Packages' },
-      { href: '/invoices', label: 'Invoices' },
-      { href: '/customers', label: 'Customers' },
-      { href: '/users', label: 'Users' },
+      { href: '/organizations', label: 'Organizations', icon: Building2 },
+      { href: '/plans',         label: 'Plans',         icon: CreditCard },
+      { href: '/packages',      label: 'Packages',      icon: Package },
+      { href: '/invoices',      label: 'Invoices',      icon: FileText },
+      { href: '/customers',     label: 'Customers',     icon: Users },
+      { href: '/users',         label: 'Users',         icon: UserCog },
     ]
   },
   {
     title: 'SYSTEM',
     items: [
-      { href: '/roles', label: 'Roles & Permissions' },
-      { href: '/audit-logs', label: 'Audit Logs' },
+      { href: '/roles',      label: 'Roles & Permissions', icon: Shield },
+      { href: '/audit-logs', label: 'Audit Logs',          icon: ScrollText },
     ]
   },
 ]
@@ -59,38 +63,55 @@ export default function SuperAdminSidebar() {
   }
 
   return (
-    <div className="fixed top-0 left-0 w-60 h-full bg-white border-r border-gray-200 flex flex-col z-50">
-      <div className="px-5 py-4 border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <rect x="3" y="4" width="18" height="18" rx="3" stroke="white" strokeWidth="2"/>
-              <path d="M3 9h18" stroke="white" strokeWidth="2"/>
-              <path d="M8 2v4M16 2v4" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-              <path d="M7 14l3 3 7-7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+    <div className="fixed top-0 left-0 w-60 h-full flex flex-col z-50"
+      style={{ background: 'var(--surface)', borderRight: '1px solid var(--border)' }}>
+
+      {/* Logo */}
+      <div className="px-4 py-4" style={{ borderBottom: '1px solid var(--divider)' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-lg"
+            style={{ background: 'var(--primary)' }}>
+            M
           </div>
           <div>
-            <p className="text-sm font-bold text-gray-900 leading-none">MawedQo</p>
-            <p className="text-xs text-gray-400 leading-none">موعدكو</p>
+            <p className="text-sm font-bold" style={{ color: 'var(--ink)' }}>AlMawid</p>
+            <p className="text-xs" style={{ color: 'var(--text-ter)' }}>Smart Appointments</p>
           </div>
         </div>
       </div>
-      <div className="px-5 py-3 border-b border-gray-100">
-        <p className="text-xs font-medium text-gray-700 truncate">{user?.email || ''}</p>
-        <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium mt-0.5 inline-block">Super Admin</span>
+
+      {/* User Info */}
+      <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--divider)' }}>
+        <p className="text-xs font-medium truncate" style={{ color: 'var(--ink)' }}>{user?.email || ''}</p>
+        <span className="text-xs font-semibold px-2 py-0.5 rounded-full mt-1 inline-block"
+          style={{ background: 'var(--primary-dim)', color: 'var(--primary)' }}>
+          Super Admin
+        </span>
       </div>
+
+      {/* Nav */}
       <nav className="flex-1 px-3 py-3 overflow-y-auto">
         {navSections.map(section => (
           <div key={section.title} className="mb-4">
-            <p className="text-xs font-semibold text-gray-400 px-3 mb-1">{section.title}</p>
+            <p className="text-xs font-semibold px-3 mb-1" style={{ color: 'var(--text-ter)' }}>
+              {section.title}
+            </p>
             <div className="space-y-0.5">
               {section.items.map(item => {
                 const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
+                const Icon = item.icon
                 return (
                   <Link key={item.href} href={item.href}>
-                    <div className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
-                      {item.label}
+                    <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                      style={{
+                        background: isActive ? 'var(--primary-dim)' : 'transparent',
+                        color: isActive ? 'var(--primary)' : 'var(--text-sec)',
+                      }}
+                      onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = 'var(--bg)' }}
+                      onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
+                    >
+                      <Icon size={16} strokeWidth={isActive ? 2.5 : 2} />
+                      <span>{item.label}</span>
                     </div>
                   </Link>
                 )
@@ -99,9 +120,16 @@ export default function SuperAdminSidebar() {
           </div>
         ))}
       </nav>
-      <div className="px-3 py-3 border-t border-gray-100">
+
+      {/* Sign out */}
+      <div className="px-3 py-3" style={{ borderTop: '1px solid var(--divider)' }}>
         <button onClick={handleLogout}
-          className="w-full px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition text-left">
+          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all text-left"
+          style={{ color: 'var(--danger)' }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--danger-dim)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        >
+          <LogOut size={16} />
           Sign out
         </button>
       </div>

@@ -1,0 +1,11 @@
+﻿name,type,price,sessions_count,duration_days,capacity,absence_policy,enable_notification
+سنا مرقاة,duration,750,,30,,,false
+هامة مرقاة,sessions,3500,16,,,deduct,false
+دانة مرقاة,sessions,6000,16,,,deduct,false
+بوصلة مرقاة - Tickmill,duration,275,,30,,,false
+بوصلة مرقاة - مباشر,duration,550,,30,,,false
+تجديد سنا مرقاة,duration,365,,30,,,false
+تجديد هامة مرقاة,duration,650,,30,,,false
+تجديد دانة مرقاة,duration,850,,30,,,false
+تجديد بوصلة مرقاة - Tickmill,duration,275,,30,,,false
+تجديد بوصلة مرقاة - مباشر,duration,550,,30,,,false

@@ -11,6 +11,8 @@ export async function GET(req: NextRequest) {
   const entity_type = searchParams.get('entity_type')
   const limit = parseInt(searchParams.get('limit') || '100')
 
+  const org_id = searchParams.get('org_id')
+
   let query = supabaseAdmin
     .from('audit_logs')
     .select('*')
@@ -18,6 +20,7 @@ export async function GET(req: NextRequest) {
     .limit(limit)
 
   if (entity_type) query = query.eq('entity_type', entity_type)
+  if (org_id) query = query.eq('organization_id', org_id)
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

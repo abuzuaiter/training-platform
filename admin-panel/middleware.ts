@@ -8,10 +8,8 @@ const PAGE_ROUTES: Record<string, string> = {
   plans: '/plans',
   invoices: '/invoices',
   customers: '/customers',
-  subscriptions: '/subscriptions',
   users: '/users',
   invitations: '/invitations',
-  activities: '/activities',
   audit_logs: '/audit-logs',
   roles: '/roles',
 }

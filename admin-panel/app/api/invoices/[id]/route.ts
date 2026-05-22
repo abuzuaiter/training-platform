@@ -19,7 +19,7 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
   const { id } = await params
   const { data, error } = await supabaseAdmin
     .from('invoices')
-    .select('*, organizations(id, name, email, mobile), organization_plans(*, plans(*))')
+    .select('*, organizations(id, name, email, mobile, phone, logo_url, stamp_url), organization_plans(*, plans(*))')
     .eq('id', id).single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)

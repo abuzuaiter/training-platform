@@ -2,17 +2,21 @@
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import {
+  LayoutDashboard, Building2, CreditCard, FileText,
+  Users, UserCog, Shield, ScrollText, Calendar, LogOut
+} from 'lucide-react'
 
 const navItems = [
-  { href: '/', label: 'Dashboard' },
-  { href: '/organizations', label: 'Organizations' },
-  { href: '/plans', label: 'Plans' },
-  { href: '/invoices', label: 'Invoices' },
-  { href: '/customers', label: 'Customers' },
-  { href: '/users', label: 'Users' },
-  { href: '/roles', label: 'Roles' },
-  { href: '/audit-logs', label: 'Audit Logs' },
-  { href: '/calendar', label: 'Calendar' },
+  { href: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
+  { href: '/organizations',label: 'Organizations', icon: Building2 },
+  { href: '/plans',        label: 'Plans',         icon: CreditCard },
+  { href: '/invoices',     label: 'Invoices',      icon: FileText },
+  { href: '/customers',    label: 'Customers',     icon: Users },
+  { href: '/users',        label: 'Users',         icon: UserCog },
+  { href: '/roles',        label: 'Roles',         icon: Shield },
+  { href: '/audit-logs',   label: 'Audit Logs',    icon: ScrollText },
+  { href: '/calendar',     label: 'Calendar',      icon: Calendar },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -33,60 +37,75 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen flex" style={{ background: 'var(--bg)' }}>
       {/* Sidebar */}
-      <div className="w-60 bg-white border-r border-gray-200 flex flex-col fixed h-full z-10">
+      <aside className="w-60 fixed h-full z-10 flex flex-col"
+        style={{ background: 'var(--surface)', borderRight: '1px solid var(--border)' }}>
+
         {/* Logo */}
-        <div className="px-5 py-4 border-b border-gray-100">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <rect x="3" y="4" width="18" height="18" rx="3" stroke="white" strokeWidth="2"/>
-                <path d="M3 9h18" stroke="white" strokeWidth="2"/>
-                <path d="M8 2v4M16 2v4" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-                <path d="M7 14l3 3 7-7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+        <div className="px-4 py-4" style={{ borderBottom: '1px solid var(--divider)' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-lg"
+              style={{ background: 'var(--primary)' }}>
+              M
             </div>
             <div>
-              <p className="text-sm font-bold text-gray-900 leading-none">MawedQo</p>
-              <p className="text-xs text-gray-400 leading-none">موعدكو</p>
+              <p className="text-sm font-bold" style={{ color: 'var(--ink)' }}>AlMawid</p>
+              <p className="text-xs" style={{ color: 'var(--text-ter)' }}>Smart Appointments</p>
             </div>
           </div>
         </div>
 
         {/* User Info */}
-        <div className="px-5 py-3 border-b border-gray-100">
-          <p className="text-xs font-bold text-gray-900 truncate">{user?.email || '...'}</p>
-          <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">Super Admin</span>
+        <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--divider)' }}>
+          <p className="text-xs font-medium truncate" style={{ color: 'var(--ink)' }}>{user?.email || '...'}</p>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full mt-1 inline-block"
+            style={{ background: 'var(--primary-dim)', color: 'var(--primary)' }}>
+            Super Admin
+          </span>
         </div>
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
           {navItems.map(item => {
             const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
+            const Icon = item.icon
             return (
               <Link key={item.href} href={item.href}>
-                <div className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
-                  {item.label}
+                <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                  style={{
+                    background: isActive ? 'var(--primary-dim)' : 'transparent',
+                    color: isActive ? 'var(--primary)' : 'var(--text-sec)',
+                  }}
+                  onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = 'var(--bg)' }}
+                  onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
+                >
+                  <Icon size={16} strokeWidth={isActive ? 2.5 : 2} />
+                  <span>{item.label}</span>
                 </div>
               </Link>
             )
           })}
         </nav>
 
-        {/* Bottom */}
-        <div className="px-3 py-3 border-t border-gray-100">
+        {/* Sign out */}
+        <div className="px-3 py-3" style={{ borderTop: '1px solid var(--divider)' }}>
           <button onClick={handleLogout}
-            className="w-full px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition text-left">
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all text-left"
+            style={{ color: 'var(--danger)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--danger-dim)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          >
+            <LogOut size={16} />
             Sign out
           </button>
         </div>
-      </div>
+      </aside>
 
       {/* Main Content */}
-      <div className="flex-1 ml-60">
+      <main className="flex-1 ml-60">
         {children}
-      </div>
+      </main>
     </div>
   )
 }

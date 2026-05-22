@@ -12,7 +12,7 @@ interface Invoice {
   issued_at: string
   paid_at: string | null
   notes: string | null
-  organizations: { id: string; name: string; email: string | null; mobile: string | null; phone: string | null }
+  organizations: { id: string; name: string; email: string | null; mobile: string | null; phone: string | null; logo_url?: string | null; stamp_url?: string | null }
   organization_plans: {
     start_date: string
     end_date: string
@@ -81,7 +81,7 @@ export default function InvoicePage() {
           <div style={{background: '#185FA5'}} className="px-10 py-8">
             <div className="flex items-start justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-white">موعد — Mawid</h1>
+                <h1 className="text-2xl font-bold text-white">AlMawid</h1>
                 <p className="text-blue-200 text-sm mt-1">Smart Appointment Management</p>
               </div>
               <div className="text-right">
@@ -162,16 +162,18 @@ export default function InvoicePage() {
 
             {/* Stamp + Footer */}
             <div className="border-t border-gray-100 pt-6">
-              <div className="flex justify-end mb-4">
-                <img
-                  src="https://fgvasfyctknpoweinsre.supabase.co/storage/v1/object/public/org-assets/stamps/Company.jpg"
-                  alt="Company Stamp"
-                  style={{ width: 120, height: 120, objectFit: 'contain', opacity: 0.9 }}
-                />
-              </div>
+              {invoice.organizations.stamp_url && (
+                <div className="flex justify-end mb-4">
+                  <img
+                    src={invoice.organizations.stamp_url}
+                    alt="Company Stamp"
+                    style={{ width: 120, height: 120, objectFit: 'contain', opacity: 0.9 }}
+                  />
+                </div>
+              )}
               <div className="text-center">
                 <p className="text-xs text-gray-400">Thank you for your business!</p>
-                <p className="text-xs text-gray-400 mt-1">موعد — Mawid | Smart Appointment Management Platform</p>
+                <p className="text-xs text-gray-400 mt-1">AlMawid | Smart Appointment Management Platform</p>
               </div>
             </div>
           </div>

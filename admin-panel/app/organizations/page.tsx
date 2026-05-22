@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { Building2, Plus, ChevronRight } from 'lucide-react'
 
 interface Organization {
   id: string
@@ -12,12 +13,24 @@ interface Organization {
   category: string | null
   status: string
   created_at: string
+  account_manager?: { full_name?: string; email?: string }
 }
 
 const categories = [
   'Swimming', 'Football', 'Basketball', 'Tennis', 'Fitness & Gym',
   'Martial Arts', 'Yoga & Pilates', 'Online Activities', 'Academic Training', 'Other'
 ]
+
+const inputStyle = {
+  width: '100%',
+  border: '1px solid var(--border)',
+  borderRadius: '12px',
+  padding: '8px 12px',
+  fontSize: '14px',
+  outline: 'none',
+  background: 'var(--surface)',
+  color: 'var(--ink)',
+}
 
 export default function OrganizationsPage() {
   const [orgs, setOrgs] = useState<Organization[]>([])
@@ -59,7 +72,7 @@ export default function OrganizationsPage() {
       setMessage(data.error || 'Something went wrong')
     } else {
       setMessage('Organization created successfully!')
-      setForm({ name: '', name_ar: '', email: '', phone: '', mobile: '', admin_email: '', category: '' })
+      setForm({ name: '', name_ar: '', email: '', phone: '', mobile: '', admin_email: '', category: '', account_manager_id: '' })
       setShowForm(false)
       loadOrgs()
     }
@@ -83,85 +96,82 @@ export default function OrganizationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="text-gray-400 hover:text-gray-600 text-sm">Dashboard</Link>
-          <span className="text-gray-300">/</span>
-          <span className="text-gray-900 font-semibold text-sm">Organizations</span>
+    <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
+      {/* Header */}
+      <div className="px-6 py-4" style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
+        <div className="flex items-center gap-2 text-sm">
+          <Link href="/" style={{ color: 'var(--text-ter)' }} className="hover:underline">Dashboard</Link>
+          <ChevronRight size={14} style={{ color: 'var(--text-ter)' }} />
+          <span className="font-semibold" style={{ color: 'var(--ink)' }}>Organizations</span>
         </div>
-      </nav>
+      </div>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Title row */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Organizations</h1>
-            <p className="text-gray-500 text-sm mt-1">{orgs.length} organizations total</p>
+            <h1 className="text-2xl font-bold" style={{ color: 'var(--ink)' }}>Organizations</h1>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-ter)' }}>{orgs.length} organizations total</p>
           </div>
           <button onClick={() => { setShowForm(!showForm); setMessage('') }}
-            className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
-            + Add Organization
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition"
+            style={{ background: 'var(--primary)', color: '#fff' }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+          >
+            <Plus size={15} />
+            Add Organization
           </button>
         </div>
 
+        {/* Message */}
         {message && (
-          <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-medium ${message.includes('success') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+          <div className="mb-4 px-4 py-3 rounded-xl text-sm font-medium"
+            style={{
+              background: message.includes('success') ? 'var(--green-dim)' : 'var(--danger-dim)',
+              color:      message.includes('success') ? 'var(--green)'     : 'var(--danger)',
+            }}>
             {message}
           </div>
         )}
 
+        {/* Create Form */}
         {showForm && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">New Organization</h2>
+          <div className="rounded-2xl p-6 mb-6" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <h2 className="text-base font-bold mb-4" style={{ color: 'var(--ink)' }}>New Organization</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                { label: 'NAME (English) *', key: 'name',          placeholder: 'Swimming Club',      type: 'text' },
+                { label: 'الاسم (عربي)',      key: 'name_ar',       placeholder: 'نادي السباحة',       type: 'text', rtl: true },
+                { label: 'ADMIN EMAIL',       key: 'admin_email',   placeholder: 'admin@club.com',     type: 'email' },
+                { label: 'EMAIL',             key: 'email',         placeholder: 'info@club.com',      type: 'email' },
+                { label: 'PHONE',             key: 'phone',         placeholder: '+97444123456',       type: 'text' },
+                { label: 'MOBILE',            key: 'mobile',        placeholder: '+97455123456',       type: 'text' },
+              ].map(f => (
+                <div key={f.key}>
+                  <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-ter)' }}>{f.label}</label>
+                  <input
+                    value={(form as any)[f.key]}
+                    onChange={e => setForm({ ...form, [f.key]: e.target.value })}
+                    style={{ ...inputStyle, ...(f.rtl ? { textAlign: 'right' } : {}) }}
+                    placeholder={f.placeholder}
+                    type={f.type}
+                    dir={f.rtl ? 'rtl' : undefined}
+                  />
+                </div>
+              ))}
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">NAME (English) *</label>
-                <input value={form.name} onChange={e => setForm({...form, name: e.target.value})}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
-                  placeholder="Swimming Club" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">الاسم (عربي)</label>
-                <input value={form.name_ar} onChange={e => setForm({...form, name_ar: e.target.value})}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 text-right"
-                  placeholder="نادي السباحة" dir="rtl" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">CATEGORY</label>
-                <select value={form.category} onChange={e => setForm({...form, category: e.target.value})}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 bg-white">
+                <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-ter)' }}>CATEGORY</label>
+                <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}
+                  style={inputStyle}>
                   <option value="">Select category...</option>
                   {categories.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">ADMIN EMAIL</label>
-                <input value={form.admin_email} onChange={e => setForm({...form, admin_email: e.target.value})}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
-                  placeholder="admin@club.com" type="email" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">EMAIL</label>
-                <input value={form.email} onChange={e => setForm({...form, email: e.target.value})}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
-                  placeholder="info@club.com" type="email" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">PHONE</label>
-                <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
-                  placeholder="+97444123456" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">MOBILE</label>
-                <input value={form.mobile} onChange={e => setForm({...form, mobile: e.target.value})}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
-                  placeholder="+97455123456" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">ACCOUNT MANAGER</label>
-                <select value={form.account_manager_id} onChange={e => setForm({...form, account_manager_id: e.target.value})}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:border-blue-400">
+                <label className="block text-xs font-semibold mb-1" style={{ color: 'var(--text-ter)' }}>ACCOUNT MANAGER</label>
+                <select value={form.account_manager_id} onChange={e => setForm({ ...form, account_manager_id: e.target.value })}
+                  style={inputStyle}>
                   <option value="">Select account manager...</option>
                   {users.map(u => (
                     <option key={u.id} value={u.id}>{u.full_name || u.email}</option>
@@ -169,72 +179,110 @@ export default function OrganizationsPage() {
                 </select>
               </div>
             </div>
-            <div className="flex gap-3 mt-4">
+            <div className="flex gap-3 mt-5">
               <button onClick={handleSubmit} disabled={saving}
-                className="bg-blue-600 text-white px-6 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50">
+                className="px-6 py-2 rounded-xl text-sm font-semibold transition disabled:opacity-50"
+                style={{ background: 'var(--primary)', color: '#fff' }}>
                 {saving ? 'Saving...' : 'Create Organization'}
               </button>
               <button onClick={() => setShowForm(false)}
-                className="border border-gray-200 text-gray-600 px-6 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">
+                className="px-6 py-2 rounded-xl text-sm font-semibold transition"
+                style={{ background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text-sec)' }}>
                 Cancel
               </button>
             </div>
           </div>
         )}
 
+        {/* Org List */}
         {loading ? (
-          <div className="text-center py-12 text-gray-400">Loading...</div>
+          <div className="text-center py-12 text-sm" style={{ color: 'var(--text-ter)' }}>Loading...</div>
         ) : orgs.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">No organizations yet</div>
+          <div className="text-center py-12 text-sm" style={{ color: 'var(--text-ter)' }}>No organizations yet</div>
         ) : (
-          <div className="grid gap-4">
+          <div className="grid gap-3">
             {orgs.map(org => (
-              <div key={org.id} className={`bg-white rounded-2xl border p-6 flex items-center justify-between ${org.status === 'inactive' ? 'border-gray-100 opacity-60' : 'border-gray-200'}`}>
+              <div key={org.id} className="rounded-2xl p-5 flex items-center justify-between"
+                style={{
+                  background: 'var(--surface)',
+                  border: `1px solid var(--border)`,
+                  opacity: org.status === 'inactive' ? 0.6 : 1,
+                }}>
                 <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg ${org.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-400'}`}>
+                  {/* Avatar */}
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-lg"
+                    style={{
+                      background: org.status === 'active' ? 'var(--primary-dim)' : 'var(--bg)',
+                      color:      org.status === 'active' ? 'var(--primary)'     : 'var(--text-ter)',
+                    }}>
                     {org.name.charAt(0)}
                   </div>
+
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-gray-900">{org.name}</h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold text-sm" style={{ color: 'var(--ink)' }}>{org.name}</h3>
                       {org.category && (
-                        <span className="text-xs bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full font-medium">{org.category}</span>
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full"
+                          style={{ background: 'var(--teal-dim)', color: 'var(--teal)' }}>
+                          {org.category}
+                        </span>
                       )}
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${org.status === 'active' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full"
+                        style={{
+                          background: org.status === 'active' ? 'var(--green-dim)' : 'var(--danger-dim)',
+                          color:      org.status === 'active' ? 'var(--green)'     : 'var(--danger)',
+                        }}>
                         {org.status}
                       </span>
                     </div>
-                    {org.name_ar && <p className="text-sm text-gray-500" dir="rtl">{org.name_ar}</p>}
-                    <div className="flex gap-3 mt-1">
-                      {org.email && <span className="text-xs text-gray-400">{org.email}</span>}
-                      {org.mobile && <span className="text-xs text-gray-400">{org.mobile}</span>}
-                      {org.account_manager && <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">AM: {org.account_manager.full_name || org.account_manager.email}</span>}
+                    {org.name_ar && <p className="text-xs mt-0.5" style={{ color: 'var(--text-sec)' }} dir="rtl">{org.name_ar}</p>}
+                    <div className="flex gap-3 mt-1 flex-wrap">
+                      {org.email  && <span className="text-xs" style={{ color: 'var(--text-ter)' }}>{org.email}</span>}
+                      {org.mobile && <span className="text-xs" style={{ color: 'var(--text-ter)' }}>{org.mobile}</span>}
+                      {org.account_manager && (
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full"
+                          style={{ background: 'var(--primary-dim)', color: 'var(--primary)' }}>
+                          AM: {org.account_manager.full_name || org.account_manager.email}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+
+                {/* Actions */}
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <Link href={`/organizations/${org.id}`}
-                    className="text-sm text-blue-600 font-semibold hover:underline px-3 py-1.5">
+                    className="text-sm font-semibold px-3 py-1.5 rounded-lg transition"
+                    style={{ color: 'var(--primary)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--primary-dim)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                     Manage
                   </Link>
                   <button onClick={() => toggleStatus(org)}
-                    className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition ${org.status === 'active' ? 'bg-amber-50 text-amber-600 hover:bg-amber-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
+                    className="text-xs px-3 py-1.5 rounded-lg font-semibold transition"
+                    style={{
+                      background: org.status === 'active' ? 'var(--warn-dim)'   : 'var(--green-dim)',
+                      color:      org.status === 'active' ? 'var(--warn)'       : 'var(--green)',
+                    }}>
                     {org.status === 'active' ? 'Deactivate' : 'Activate'}
                   </button>
                   {deleteConfirm === org.id ? (
                     <div className="flex gap-1">
                       <button onClick={() => handleDelete(org.id)}
-                        className="text-xs px-3 py-1.5 rounded-lg font-semibold bg-red-600 text-white hover:bg-red-700 transition">
+                        className="text-xs px-3 py-1.5 rounded-lg font-semibold transition"
+                        style={{ background: 'var(--danger)', color: '#fff' }}>
                         Confirm
                       </button>
                       <button onClick={() => setDeleteConfirm(null)}
-                        className="text-xs px-3 py-1.5 rounded-lg font-semibold bg-gray-100 text-gray-600 hover:bg-gray-200 transition">
+                        className="text-xs px-3 py-1.5 rounded-lg font-semibold transition"
+                        style={{ background: 'var(--bg)', color: 'var(--text-sec)', border: '1px solid var(--border)' }}>
                         Cancel
                       </button>
                     </div>
                   ) : (
                     <button onClick={() => setDeleteConfirm(org.id)}
-                      className="text-xs px-3 py-1.5 rounded-lg font-semibold bg-red-50 text-red-600 hover:bg-red-100 transition">
+                      className="text-xs px-3 py-1.5 rounded-lg font-semibold transition"
+                      style={{ background: 'var(--danger-dim)', color: 'var(--danger)' }}>
                       Delete
                     </button>
                   )}

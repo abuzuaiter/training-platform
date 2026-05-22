@@ -1,6 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+// Web design system colors
+const kPrimary    = Color(0xFF6FA3C5);
+const kPrimaryDim = Color(0xFFCDE2EC);
+const kBg         = Color(0xFFF4F7FA);
+const kSurface    = Colors.white;
+const kInk        = Color(0xFF1B2A41);
+const kTextSec    = Color(0xFF4D5C72);
+const kTextTer    = Color(0xFF8FA0B5);
+const kBorder     = Color(0xFFDDE6EE);
+const kDivider    = Color(0xFFEAF0F5);
+const kGreen      = Color(0xFF22A06B);
+const kGreenDim   = Color(0xFFE1F1E9);
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -23,14 +36,12 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final userId = Supabase.instance.client.auth.currentUser!.id;
 
-      // Load user profile
       final profile = await Supabase.instance.client
           .from('users')
           .select('full_name')
           .eq('id', userId)
           .single();
 
-      // Load organizations
       final data = await Supabase.instance.client
           .from('organization_members')
           .select('organization_id, role, organizations(id, name, logo_url)')
@@ -56,29 +67,42 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: kBg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: kSurface,
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(height: 1, color: kBorder),
+        ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Hello, ${_fullName.split(' ').first} 👋',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A1A1A))),
-            const Text('Training Platform',
-                style: TextStyle(fontSize: 12, color: Color(0xFF8E8E93))),
+            Text(
+              'Hello, ${_fullName.split(' ').first} 👋',
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: kInk,
+              ),
+            ),
+            const Text(
+              'Training Platform',
+              style: TextStyle(fontSize: 12, color: kTextTer),
+            ),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout_rounded, color: Color(0xFF8E8E93)),
+            icon: const Icon(Icons.logout_rounded, color: kTextTer, size: 20),
             onPressed: _logout,
+            tooltip: 'Sign out',
           ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF185FA5)))
+          ? const Center(child: CircularProgressIndicator(color: kPrimary))
           : _organizations.isEmpty
               ? _buildEmpty()
               : _buildOrganizations(),
@@ -93,36 +117,42 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 120,
-              height: 120,
+              width: 96,
+              height: 96,
               decoration: BoxDecoration(
-                color: const Color(0xFFEBF3FC),
-                borderRadius: BorderRadius.circular(60),
+                color: kPrimaryDim,
+                borderRadius: BorderRadius.circular(48),
               ),
               child: const Icon(Icons.calendar_today_outlined,
-                  size: 60, color: Color(0xFF185FA5)),
+                  size: 48, color: kPrimary),
             ),
             const SizedBox(height: 24),
-            const Text("You're all caught up!",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A1A1A))),
+            const Text(
+              "No organizations yet",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: kInk,
+              ),
+            ),
             const SizedBox(height: 8),
             const Text(
-              'No upcoming sessions at the moment.',
+              'You have not been added to any organization.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Color(0xFF8E8E93), height: 1.6),
+              style: TextStyle(fontSize: 14, color: kTextTer, height: 1.6),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 28),
             OutlinedButton.icon(
               onPressed: _loadData,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
+              icon: const Icon(Icons.refresh_rounded, size: 16),
               label: const Text('Refresh'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF185FA5),
-                side: const BorderSide(color: Color(0xFF185FA5)),
+                foregroundColor: kPrimary,
+                side: const BorderSide(color: kPrimary),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
             ),
           ],
@@ -134,53 +164,78 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildOrganizations() {
     return RefreshIndicator(
       onRefresh: _loadData,
-      color: const Color(0xFF185FA5),
+      color: kPrimary,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: _organizations.length,
         itemBuilder: (_, i) {
           final org = _organizations[i]['organizations'];
-          final role = _organizations[i]['role'];
+          final role = _organizations[i]['role'] as String? ?? '';
+          final initial = (org['name'] as String? ?? '?')
+              .trim()
+              .substring(0, 1)
+              .toUpperCase();
           return Container(
-            margin: const EdgeInsets.only(bottom: 12),
+            margin: const EdgeInsets.only(bottom: 10),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: kSurface,
               borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF185FA5).withValues(alpha: 0.06),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              border: Border.all(color: kBorder),
             ),
             child: ListTile(
-              contentPadding: const EdgeInsets.all(16),
-              leading: CircleAvatar(
-                radius: 28,
-                backgroundColor: const Color(0xFFEBF3FC),
-                child: Text(
-                  org['name'].toString().substring(0, 1).toUpperCase(),
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700,
-                      color: Color(0xFF185FA5)),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              leading: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: kPrimaryDim,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Text(
+                    initial,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: kPrimary,
+                    ),
+                  ),
                 ),
               ),
-              title: Text(org['name'],
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
-                      color: Color(0xFF1A1A1A))),
-              subtitle: Container(
-                margin: const EdgeInsets.only(top: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEBF3FC),
-                  borderRadius: BorderRadius.circular(6),
+              title: Text(
+                org['name'] ?? '',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: kInk,
                 ),
-                child: Text(role.toString().toUpperCase(),
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
-                        color: Color(0xFF185FA5))),
+              ),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Container(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: kPrimaryDim,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      role.toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: kPrimary,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                  ),
+                ),
               ),
               trailing: const Icon(Icons.arrow_forward_ios_rounded,
-                  size: 16, color: Color(0xFF8E8E93)),
+                  size: 14, color: kTextTer),
               onTap: () {},
             ),
           );

@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>UX Suggestions</title>
+<style>
+:root{
+  --bg:#F0F4F8;--surface:#fff;--primary:#4A90C4;--primary-dim:#DDF0FB;
+  --ink:#1B2A41;--text-sec:#4D6070;--text-ter:#8FA0B5;--border:#D0DEE8;
+  --divider:#E8EFF5;--green:#1A9E6A;--green-dim:#D6F5E8;
+  --warn:#C47A1A;--warn-dim:#FDF0D8;--danger:#C43838;--danger-dim:#FBE7E7;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;}
+
+/* ── Tab bar ── */
+.tabs{
+  display:flex;background:var(--surface);border-bottom:2px solid var(--border);
+  padding:0 0;justify-content:center;gap:0;position:sticky;top:0;z-index:10;
+  box-shadow:0 2px 8px rgba(0,0,0,.06);
+}
+.tab{
+  padding:16px 22px;font-size:13px;font-weight:700;cursor:pointer;
+  border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--text-ter);
+  white-space:nowrap;transition:color .15s;
+}
+.tab.active{color:var(--primary);border-bottom-color:var(--primary);}
+.tab:hover:not(.active){color:var(--text-sec);}
+
+/* ── Panel wrapper ── */
+.panel{display:none;}
+.panel.active{display:block;}
+
+/* ── Page layout ── */
+.page{max-width:600px;margin:0 auto;padding:36px 24px 60px;}
+
+/* ── Section heading ── */
+.tag{
+  display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--primary);
+  background:var(--primary-dim);padding:5px 14px;border-radius:20px;margin-bottom:14px;
+}
+.ptitle{font-size:26px;font-weight:800;color:var(--ink);margin-bottom:8px;line-height:1.25;}
+.pdesc{font-size:14px;color:var(--text-sec);line-height:1.8;margin-bottom:32px;}
+
+/* ══════════════════════════
+   PANEL 1 — Sidebar rename
+══════════════════════════ */
+.compare{display:flex;align-items:flex-start;gap:24px;}
+.compare-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:10px;}
+.col-lbl{font-size:11px;font-weight:800;color:var(--text-ter);text-transform:uppercase;letter-spacing:.07em;}
+.sidebar{
+  width:100%;background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;padding:10px;display:flex;flex-direction:column;
+  gap:2px;box-shadow:0 4px 20px rgba(0,0,0,.07);
+}
+.s-logo{
+  display:flex;align-items:center;gap:10px;padding:8px 10px 12px;
+  border-bottom:1px solid var(--divider);margin-bottom:6px;
+}
+.s-av{width:32px;height:32px;border-radius:10px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;}
+.s-nm{font-size:12px;font-weight:700;color:var(--ink);}
+.ni{
+  display:flex;align-items:center;gap:9px;padding:8px 12px;
+  border-radius:10px;font-size:12.5px;font-weight:600;color:var(--text-sec);
+}
+.ni.hi{background:var(--primary-dim);color:var(--primary);}
+.arrow{font-size:28px;color:var(--text-ter);align-self:center;flex-shrink:0;padding-top:50px;}
+.badge{
+  font-size:9px;font-weight:800;background:#fef3c7;color:#92400e;
+  padding:2px 7px;border-radius:6px;margin-left:4px;
+}
+
+/* ══════════════════════════
+   PANEL 2 — Confirm modal
+══════════════════════════ */
+.modal{
+  background:var(--surface);border:1.5px solid var(--border);border-radius:20px;
+  overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.12);
+}
+.mh{
+  padding:18px 22px 14px;border-bottom:1px solid var(--divider);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.mh h3{font-size:16px;font-weight:800;color:var(--ink);}
+.mx{width:26px;height:26px;border-radius:8px;background:var(--bg);border:none;cursor:pointer;font-size:12px;color:var(--text-ter);display:flex;align-items:center;justify-content:center;}
+.mb{padding:18px 22px;}
+.pr{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--divider);font-size:13.5px;}
+.pr:last-of-type{border:none;}
+.pl{color:var(--text-ter);font-weight:600;}
+.pv{color:var(--ink);font-weight:700;text-align:right;}
+.pv.g{color:var(--green);}
+.pv.w{color:var(--warn);}
+.timeline{
+  background:var(--bg);border-radius:12px;padding:14px 16px;margin:14px 0 4px;
+  border-left:3px solid var(--primary);
+}
+.timeline p{font-size:13px;color:var(--text-sec);line-height:1.9;}
+.timeline strong{color:var(--ink);}
+.mf{padding:6px 22px 22px;display:flex;gap:10px;}
+.btn{padding:11px 20px;border-radius:12px;font-size:13px;font-weight:700;border:none;cursor:pointer;}
+.btn-p{background:var(--primary);color:#fff;flex:1;}
+.btn-g{background:var(--bg);color:var(--text-sec);border:1px solid var(--border);}
+.step-row{
+  display:flex;align-items:center;gap:12px;padding:10px 14px;
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  font-size:13px;color:var(--text-sec);margin-bottom:8px;
+}
+.step-num{
+  width:24px;height:24px;border-radius:50%;font-size:12px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  background:var(--primary-dim);color:var(--primary);
+}
+.step-row.done .step-num{background:var(--green-dim);color:var(--green);}
+.step-row.now{border-color:var(--primary);background:var(--primary-dim);}
+.step-row.now .step-num{background:var(--primary);color:#fff;}
+.steps-label{font-size:11px;font-weight:800;color:var(--text-ter);letter-spacing:.06em;margin-bottom:10px;text-transform:uppercase;}
+.new-badge{font-size:10px;font-weight:800;background:var(--primary);color:#fff;padding:1px 7px;border-radius:6px;margin-left:6px;}
+
+/* ══════════════════════════
+   PANEL 3 — Checklist
+══════════════════════════ */
+.dash-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 16px;}
+.stat-lbl{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--text-ter);margin-bottom:6px;}
+.stat-val{font-size:24px;font-weight:800;}
+.blue{color:var(--primary)}.teal{color:#0E9A8E}.green{color:var(--green)}.warn{color:var(--warn)}
+.checklist{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 24px;}
+.cl-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.cl-head h3{font-size:15px;font-weight:800;}
+.cl-head span{font-size:11px;color:var(--text-ter);font-weight:600;}
+.pbar{height:7px;background:var(--divider);border-radius:4px;overflow:hidden;margin-bottom:18px;}
+.pfill{height:100%;background:var(--green);border-radius:4px;}
+.ci{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--divider);}
+.ci:last-child{border:none;}
+.ci-ic{
+  width:30px;height:30px;border-radius:9px;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;font-size:13px;font-weight:800;
+}
+.ci-ic.done{background:var(--green-dim);color:var(--green);}
+.ci-ic.todo{background:var(--bg);border:1.5px dashed var(--border);color:var(--text-ter);font-size:12px;}
+.ci-body{flex:1;}
+.ci-title{font-size:13.5px;font-weight:700;}
+.ci-title.done{color:var(--text-ter);text-decoration:line-through;font-weight:500;}
+.ci-sub{font-size:11.5px;color:var(--text-ter);margin-top:2px;}
+.ci-cta{font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-dim);padding:5px 12px;border-radius:7px;border:none;cursor:pointer;white-space:nowrap;}
+.ci-done{font-size:11px;font-weight:700;color:var(--green);background:var(--green-dim);padding:4px 10px;border-radius:7px;}
+
+/* ══════════════════════════
+   PANEL 4 — Booking warning
+══════════════════════════ */
+.warn-card{background:var(--surface);border:1.5px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 8px 28px rgba(0,0,0,.09);}
+.warn-head{padding:16px 20px;border-bottom:1px solid var(--border);font-size:15px;font-weight:800;color:var(--ink);display:flex;align-items:center;gap:8px;}
+.warn-body{padding:20px;}
+.warn-banner{
+  background:var(--warn-dim);border:1px solid #f5c97a;border-radius:12px;
+  padding:12px 14px;margin-bottom:18px;display:flex;gap:10px;
+}
+.wi{font-size:18px;flex-shrink:0;margin-top:1px;}
+.wt{font-size:13px;color:var(--warn);line-height:1.6;font-weight:500;}
+.wt strong{font-weight:800;display:block;margin-bottom:3px;}
+.opts-lbl{font-size:11px;font-weight:800;color:var(--text-ter);margin-bottom:10px;letter-spacing:.05em;text-transform:uppercase;}
+.opts{display:flex;flex-direction:column;gap:10px;}
+.opt{
+  padding:12px 16px;border-radius:12px;border:1.5px solid var(--border);
+  cursor:pointer;display:flex;align-items:flex-start;gap:12px;
+}
+.opt.sel{border-color:var(--primary);background:var(--primary-dim);}
+.radio{width:17px;height:17px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;}
+.opt.sel .radio{border-color:var(--primary);background:var(--primary);}
+.opt.sel .radio::after{content:'';width:6px;height:6px;border-radius:50%;background:#fff;display:block;}
+.opt-title{font-size:14px;font-weight:700;color:var(--ink);}
+.opt.sel .opt-title{color:var(--primary);}
+.opt-desc{font-size:12px;color:var(--text-ter);margin-top:3px;line-height:1.5;}
+.sel-cust{
+  width:100%;border:1.5px solid var(--border);border-radius:10px;
+  padding:10px 12px;font-size:13.5px;background:var(--bg);
+  color:var(--ink);outline:none;margin-top:16px;
+}
+.book-btn{
+  width:100%;margin-top:14px;padding:13px;border-radius:12px;
+  background:var(--primary);color:#fff;border:none;
+  font-size:14px;font-weight:700;cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<!-- TAB BAR -->
+<div class="tabs">
+  <div class="tab active" onclick="show(0)">① Rename Sessions</div>
+  <div class="tab" onclick="show(1)">② Enrollment Preview</div>
+  <div class="tab" onclick="show(2)">③ Setup Checklist</div>
+  <div class="tab" onclick="show(3)">④ Booking Warning</div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PANEL 1 — Rename "Sessions" in Sidebar
+══════════════════════════════════════════ -->
+<div class="panel active" id="p0">
+  <div class="page">
+    <div class="tag">① Rename in Sidebar</div>
+    <div class="ptitle">Sessions → Schedule Templates</div>
+    <div class="pdesc">"Sessions" is ambiguous — admins confuse it with live calendar sessions. Renaming it to <strong>"Schedule Templates"</strong> makes it instantly clear this page is where you define recurring blueprints, not manage live bookings.</div>
+
+    <div class="compare">
+      <div class="compare-col">
+        <div class="col-lbl">Before</div>
+        <div class="sidebar">
+          <div class="s-logo"><div class="s-av">M</div><div class="s-nm">Marqah Academy</div></div>
+          <div class="ni">📊 Dashboard</div>
+          <div class="ni">📅 Calendar</div>
+          <div class="ni hi">📖 Sessions</div>
+          <div class="ni">👤 Customers</div>
+          <div class="ni">📄 Enrollments</div>
+          <div class="ni">📦 Packages</div>
+        </div>
+      </div>
+
+      <div class="arrow">→</div>
+
+      <div class="compare-col">
+        <div class="col-lbl">After</div>
+        <div class="sidebar">
+          <div class="s-logo"><div class="s-av">M</div><div class="s-nm">Marqah Academy</div></div>
+          <div class="ni">📊 Dashboard</div>
+          <div class="ni">📅 Calendar</div>
+          <div class="ni hi">📖 Schedule Templates <span class="badge">RENAMED</span></div>
+          <div class="ni">👤 Customers</div>
+          <div class="ni">📄 Enrollments</div>
+          <div class="ni">📦 Packages</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PANEL 2 — Enrollment Confirmation Modal
+══════════════════════════════════════════ -->
+<div class="panel" id="p1">
+  <div class="page">
+    <div class="tag">② Enrollment Preview Step</div>
+    <div class="ptitle">Show what will be created before committing</div>
+    <div class="pdesc">Currently clicking "Create Enrollment" silently generates 16 sessions + bookings + an invoice. A final confirmation step shows the schedule and invoice so the admin can verify before it commits.</div>
+
+    <div class="steps-label">Enrollment Steps</div>
+    <div class="step-row done"><div class="step-num">✓</div>Select Customer</div>
+    <div class="step-row done"><div class="step-num">✓</div>Choose Package</div>
+    <div class="step-row done"><div class="step-num">✓</div>Pick Template + Start Date</div>
+    <div class="step-row now"><div class="step-num">4</div><strong>Confirm &amp; Create</strong><span class="new-badge">NEW</span></div>
+
+    <br>
+
+    <div class="modal">
+      <div class="mh">
+        <h3>✅ Confirm Enrollment</h3>
+        <button class="mx">✕</button>
+      </div>
+      <div class="mb">
+        <div class="pr"><span class="pl">Customer</span><span class="pv">Noof AlKhalifa</span></div>
+        <div class="pr"><span class="pl">Package</span><span class="pv">هامة مرقاة — 3,500 QAR</span></div>
+        <div class="pr"><span class="pl">Template</span><span class="pv">Swimming Level 2 · 7–8 AM</span></div>
+        <div class="pr"><span class="pl">Sessions to generate</span><span class="pv g">16 sessions ✓</span></div>
+        <div class="pr"><span class="pl">Payment</span><span class="pv w">Pending — 3,500 QAR</span></div>
+        <div class="timeline">
+          <p>
+            <strong>📅 Generated schedule</strong><br>
+            Starts <strong>Sunday, May 25</strong> · Every <strong>Sun, Tue, Thu</strong> at 7:00 AM<br>
+            Last session: <strong>Thursday, July 17, 2026</strong>
+          </p>
+        </div>
+      </div>
+      <div class="mf">
+        <button class="btn btn-g">← Back</button>
+        <button class="btn btn-p">Confirm &amp; Create →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PANEL 3 — Setup Checklist on Dashboard
+══════════════════════════════════════════ -->
+<div class="panel" id="p2">
+  <div class="page">
+    <div class="tag">③ Setup Checklist on Dashboard</div>
+    <div class="ptitle">Guide new org admins step by step</div>
+    <div class="pdesc">A new org admin sees an empty dashboard with no guidance. This checklist card shows setup steps in the correct order with direct action links. It disappears automatically once all 5 steps are complete.</div>
+
+    <div class="dash-stats">
+      <div class="stat"><div class="stat-lbl">Customers</div><div class="stat-val blue">4</div></div>
+      <div class="stat"><div class="stat-lbl">Enrollments</div><div class="stat-val green">2</div></div>
+      <div class="stat"><div class="stat-lbl">Revenue</div><div class="stat-val teal">7,000</div></div>
+      <div class="stat"><div class="stat-lbl">Pending</div><div class="stat-val warn">3,500</div></div>
+    </div>
+
+    <div class="checklist">
+      <div class="cl-head">
+        <h3>🚀 Get started — 3 of 5 done</h3>
+        <span>Auto-hides when complete</span>
+      </div>
+      <div class="pbar"><div class="pfill" style="width:60%"></div></div>
+
+      <div class="ci">
+        <div class="ci-ic done">✓</div>
+        <div class="ci-body"><div class="ci-title done">Add team members</div><div class="ci-sub">3 members added</div></div>
+        <div class="ci-done">Done</div>
+      </div>
+      <div class="ci">
+        <div class="ci-ic done">✓</div>
+        <div class="ci-body"><div class="ci-title done">Create packages</div><div class="ci-sub">4 packages created</div></div>
+        <div class="ci-done">Done</div>
+      </div>
+      <div class="ci">
+        <div class="ci-ic done">✓</div>
+        <div class="ci-body"><div class="ci-title done">Set up schedule templates</div><div class="ci-sub">2 templates active</div></div>
+        <div class="ci-done">Done</div>
+      </div>
+      <div class="ci">
+        <div class="ci-ic todo">4</div>
+        <div class="ci-body"><div class="ci-title">Add your first customers</div><div class="ci-sub">Import CSV or add manually</div></div>
+        <button class="ci-cta">Go →</button>
+      </div>
+      <div class="ci">
+        <div class="ci-ic todo">5</div>
+        <div class="ci-body"><div class="ci-title">Create your first enrollment</div><div class="ci-sub">Link customer to package + schedule</div></div>
+        <button class="ci-cta">Go →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PANEL 4 — Booking Warning
+══════════════════════════════════════════ -->
+<div class="panel" id="p3">
+  <div class="page">
+    <div class="tag">④ Booking Without Enrollment Warning</div>
+    <div class="ptitle">Warn when booking directly without an enrollment</div>
+    <div class="pdesc">When a customer is added to a session directly (not via enrollment), no invoice is created and no session counter is tracked. This updated booking panel makes that clear and offers a "Book + Enroll" option to do it properly.</div>
+
+    <div class="warn-card">
+      <div class="warn-head">
+        👤 Add Booking
+      </div>
+      <div class="warn-body">
+        <div class="warn-banner">
+          <div class="wi">⚠️</div>
+          <div class="wt">
+            <strong>No active enrollment found</strong>
+            This customer has no enrollment for this package. Booking directly won't generate an invoice or track session usage.
+          </div>
+        </div>
+        <div class="opts-lbl">How would you like to book?</div>
+        <div class="opts">
+          <div class="opt sel">
+            <div class="radio"></div>
+            <div>
+              <div class="opt-title">📋 Book + Enroll (recommended)</div>
+              <div class="opt-desc">Creates a proper enrollment, generates an invoice, and books this session.</div>
+            </div>
+          </div>
+          <div class="opt">
+            <div class="radio"></div>
+            <div>
+              <div class="opt-title">⚡ Ad-hoc only</div>
+              <div class="opt-desc">This session only. No invoice or session counter created. Good for trials.</div>
+            </div>
+          </div>
+        </div>
+        <select class="sel-cust">
+          <option>Select customer…</option>
+          <option selected>Noof AlKhalifa</option>
+          <option>Sara AlKuwari</option>
+        </select>
+        <button class="book-btn">Confirm Booking</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(i){
+  document.querySelectorAll('.tab').forEach((t,j) => t.classList.toggle('active', i===j));
+  document.querySelectorAll('.panel').forEach((p,j) => p.classList.toggle('active', i===j));
+}
+</script>
+</body>
+</html>

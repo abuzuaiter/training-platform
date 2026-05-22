@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { logAudit } from '@/lib/audit'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,7 +19,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { organization_id, title, capacity, recurrence_type, recurrence_days, start_time, end_time } = body
+  const { organization_id, title, capacity, recurrence_type, recurrence_days, start_time, end_time, trainer_id, package_id } = body
   if (!organization_id || !title || !start_time || !end_time) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
@@ -26,8 +27,11 @@ export async function POST(req: NextRequest) {
     organization_id, title, capacity: capacity || 1,
     recurrence_type: recurrence_type || 'weekly',
     recurrence_days: recurrence_days || null,
-    start_time, end_time, is_active: true
+    start_time, end_time, is_active: true,
+    trainer_id: trainer_id || null,
+    package_id: package_id || null,
   }).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await logAudit({ action: 'create', entity_type: 'session_template', entity_id: data.id, organization_id: data.organization_id, details: { title: data.title } })
   return NextResponse.json(data)
 }

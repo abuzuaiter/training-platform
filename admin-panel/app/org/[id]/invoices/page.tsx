@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
+import { FileText, Check, Printer, DollarSign, Clock, Hash } from 'lucide-react'
 
 export default function OrgInvoicesPage() {
   const params = useParams()
@@ -46,7 +47,7 @@ export default function OrgInvoicesPage() {
         .logo { width: 72px; height: 72px; object-fit: contain; }
         .org-name { font-size: 22px; font-weight: 800; color: #1a1a2e; }
         .org-info { font-size: 13px; color: #64748b; margin-top: 4px; }
-        .invoice-num { font-size: 22px; font-weight: 800; color: #185FA5; }
+        .invoice-num { font-size: 22px; font-weight: 800; color: #6FA3C5; }
         .invoice-date { font-size: 13px; color: #64748b; margin-top: 4px; }
         .bill-to { margin-bottom: 28px; }
         .label { font-size: 10px; font-weight: 700; color: #94a3b8; letter-spacing: 1px; margin-bottom: 6px; }
@@ -79,13 +80,11 @@ export default function OrgInvoicesPage() {
           ${invoice.status === 'paid' ? `<div class="invoice-date">Paid: ${new Date(invoice.paid_at).toLocaleDateString('en-GB')}</div>` : ''}
         </div>
       </div>
-
       <div class="bill-to">
         <div class="label">BILL TO</div>
         <div class="customer-name">${invoice.customers?.full_name || '—'}</div>
         <div class="customer-info">${invoice.customers?.mobile || ''}</div>
       </div>
-
       <table>
         <tr>
           <th>DESCRIPTION</th>
@@ -102,25 +101,15 @@ export default function OrgInvoicesPage() {
           <td style="text-align:right;">${invoice.amount} QAR</td>
         </tr>
       </table>
-
       <div style="margin-top:16px;">
         <span class="status-badge ${invoice.status === 'paid' ? 'paid-badge' : 'pending-badge'}">
           ${invoice.status === 'paid' ? '✓ PAID' : 'PAYMENT PENDING'}
         </span>
       </div>
-
-      ${org?.stamp_url ? `
-      <div class="stamp-section">
-        <img src="${org.stamp_url}" class="stamp-img" alt="Stamp" />
-      </div>` : ''}
-
+      ${org?.stamp_url ? `<div class="stamp-section"><img src="${org.stamp_url}" class="stamp-img" alt="Stamp" /></div>` : ''}
       <div class="footer">
-        <div class="disclaimer">
-          <strong>ملاحظة:</strong> هذه الفاتورة صادرة إلكترونياً وهي وثيقة رسمية معتمدة. المبالغ المدفوعة غير قابلة للاسترداد بعد بدء الدورة. يُطبَّق نظام الغياب وفقاً لسياسة الباقة المشترك بها. لأي استفسار يرجى التواصل معنا عبر ${org?.email || '[email/number]'}.
-        </div>
-        <div class="disclaimer">
-          <strong>Note:</strong> This is an electronically issued invoice and serves as an official document. Payments are non-refundable once the course has commenced. Absence policy is applied according to the enrolled package terms. For inquiries, please contact us at ${org?.email || '[email/number]'}.
-        </div>
+        <div class="disclaimer" dir="rtl"><strong>ملاحظة:</strong> هذه الفاتورة صادرة إلكترونيًا وهي وثيقة رسمية معتمدة. المبالغ المدفوعة غير قابلة للاسترداد بعد بدء الدورة. يُطَّبق نظام الغياب وفقًا لسياسة الباقة المشترك بها.<br>لأي استفسار يرجى التواصل معنا على &nbsp;<strong>Email:</strong> ${org?.email || '—'} &nbsp; <strong>Phone:</strong> ${org?.phone || org?.mobile || '—'}</div>
+        <div class="disclaimer"><strong>Note:</strong> This is an electronically issued invoice and serves as an official document. Payments are non-refundable once the course has commenced. Absence policy is applied according to the enrolled package terms.<br>For any inquiries, please contact us at &nbsp;<strong>Email:</strong> ${org?.email || '—'} &nbsp; <strong>Phone:</strong> ${org?.phone || org?.mobile || '—'}</div>
       </div>
       </body></html>`)
     win.document.close()
@@ -128,89 +117,113 @@ export default function OrgInvoicesPage() {
     setTimeout(() => { win.print(); win.close() }, 300)
   }
 
-  const totalPaid = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount), 0)
+  const totalPaid    = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.amount), 0)
   const totalPending = invoices.filter(i => i.status === 'pending').reduce((s, i) => s + Number(i.amount), 0)
 
+  const statCards = [
+    { label: 'Collected',  value: `${totalPaid} QAR`,    icon: DollarSign, color: 'var(--green)',   bg: 'var(--green-dim)'   },
+    { label: 'Pending',    value: `${totalPending} QAR`,  icon: Clock,      color: 'var(--warn)',    bg: 'var(--warn-dim)'    },
+    { label: 'Total',      value: invoices.length,        icon: Hash,       color: 'var(--primary)', bg: 'var(--primary-dim)' },
+  ]
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <h1 className="text-lg font-bold text-gray-900">Invoices</h1>
-        <p className="text-xs text-gray-400">{invoices.length} invoices</p>
+    <div className="p-6">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--ink)', letterSpacing: '-0.5px' }}>Invoices</h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-ter)' }}>{invoices.length} invoices</p>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        {message && (
-          <div className="mb-4 px-4 py-3 rounded-xl bg-green-50 text-green-700 text-sm font-medium">{message}</div>
-        )}
+      {message && (
+        <div className="mb-4 px-4 py-3 rounded-xl text-sm font-semibold"
+          style={{ background: 'var(--green-dim)', color: 'var(--green)' }}>{message}</div>
+      )}
 
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded-2xl border border-gray-200 p-4 text-center">
-            <p className="text-2xl font-bold text-green-600">{totalPaid} QAR</p>
-            <p className="text-xs text-gray-400 mt-1">Collected</p>
+      {/* Stat cards */}
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        {statCards.map(({ label, value, icon: Icon, color, bg }) => (
+          <div key={label} className="rounded-2xl p-5 flex items-center gap-4"
+            style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: bg }}>
+              <Icon size={20} style={{ color }} />
+            </div>
+            <div>
+              <p className="text-xl font-bold" style={{ color }}>{value}</p>
+              <p className="text-xs font-medium mt-0.5" style={{ color: 'var(--text-ter)' }}>{label}</p>
+            </div>
           </div>
-          <div className="bg-white rounded-2xl border border-gray-200 p-4 text-center">
-            <p className="text-2xl font-bold text-amber-500">{totalPending} QAR</p>
-            <p className="text-xs text-gray-400 mt-1">Pending</p>
-          </div>
-          <div className="bg-white rounded-2xl border border-gray-200 p-4 text-center">
-            <p className="text-2xl font-bold text-blue-600">{invoices.length}</p>
-            <p className="text-xs text-gray-400 mt-1">Total</p>
-          </div>
+        ))}
+      </div>
+
+      {/* Table */}
+      {loading ? (
+        <div className="text-center py-16" style={{ color: 'var(--text-ter)' }}>Loading...</div>
+      ) : invoices.length === 0 ? (
+        <div className="text-center py-20">
+          <FileText size={36} className="mx-auto mb-3" style={{ color: 'var(--border)' }} />
+          <p className="text-sm font-medium" style={{ color: 'var(--text-ter)' }}>No invoices yet</p>
+          <p className="text-xs mt-1" style={{ color: 'var(--text-ter)' }}>Invoices are created automatically when you enroll a customer</p>
         </div>
-
-        {loading ? (
-          <div className="text-center py-12 text-gray-400">Loading...</div>
-        ) : invoices.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-gray-500 font-medium">No invoices yet</p>
-            <p className="text-gray-400 text-sm mt-1">Invoices are created automatically when you enroll a customer</p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">INVOICE</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">CUSTOMER</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">AMOUNT</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">STATUS</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">DATE</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500">ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoices.map(inv => (
-                  <tr key={inv.id} className="border-b border-gray-50 hover:bg-gray-50">
-                    <td className="px-5 py-3 text-sm font-medium text-gray-900">{inv.invoice_number}</td>
-                    <td className="px-5 py-3 text-sm text-gray-700">{inv.customers?.full_name || '—'}</td>
-                    <td className="px-5 py-3 text-sm font-semibold text-gray-900">{inv.amount} QAR</td>
-                    <td className="px-5 py-3">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${inv.status === 'paid' ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'}`}>
-                        {inv.status}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-xs text-gray-400">{new Date(inv.created_at).toLocaleDateString()}</td>
-                    <td className="px-5 py-3">
-                      <div className="flex gap-2">
-                        {inv.status !== 'paid' && (
-                          <button onClick={() => markPaid(inv.id)}
-                            className="text-xs px-3 py-1.5 rounded-lg bg-green-50 text-green-600 font-semibold hover:bg-green-100 transition">
-                            Mark Paid
-                          </button>
-                        )}
-                        <button onClick={() => handlePrint(inv)}
-                          className="text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 font-semibold hover:bg-blue-100 transition">
-                          Print
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+      ) : (
+        <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <table className="w-full">
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--divider)', background: 'var(--bg)' }}>
+                {['INVOICE','CUSTOMER','AMOUNT','STATUS','DATE','ACTIONS'].map(h => (
+                  <th key={h} className="text-left px-5 py-3"
+                    style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-ter)', letterSpacing: '0.5px' }}>
+                    {h}
+                  </th>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+              </tr>
+            </thead>
+            <tbody>
+              {invoices.map(inv => (
+                <tr key={inv.id} style={{ borderBottom: '1px solid var(--divider)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                  <td className="px-5 py-3">
+                    <span className="text-sm font-bold" style={{ color: 'var(--ink)' }}>{inv.invoice_number}</span>
+                  </td>
+                  <td className="px-5 py-3 text-sm" style={{ color: 'var(--text-sec)' }}>
+                    {inv.customers?.full_name || '—'}
+                  </td>
+                  <td className="px-5 py-3">
+                    <span className="text-sm font-bold" style={{ color: 'var(--ink)' }}>{inv.amount} QAR</span>
+                  </td>
+                  <td className="px-5 py-3">
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{
+                      background: inv.status === 'paid' ? 'var(--green-dim)' : 'var(--warn-dim)',
+                      color: inv.status === 'paid' ? 'var(--green)' : 'var(--warn)',
+                    }}>
+                      {inv.status}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3 text-xs" style={{ color: 'var(--text-ter)' }}>
+                    {new Date(inv.created_at).toLocaleDateString('en-GB')}
+                  </td>
+                  <td className="px-5 py-3">
+                    <div className="flex gap-2">
+                      {inv.status !== 'paid' && (
+                        <button onClick={() => markPaid(inv.id)}
+                          className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
+                          style={{ background: 'var(--green-dim)', color: 'var(--green)' }}>
+                          <Check size={11} /> Mark Paid
+                        </button>
+                      )}
+                      <button onClick={() => handlePrint(inv)}
+                        className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all"
+                        style={{ background: 'var(--primary-dim)', color: 'var(--primary)' }}>
+                        <Printer size={11} /> Print
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }

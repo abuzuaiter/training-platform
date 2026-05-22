@@ -1,18 +1,28 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
+import { Users2, Plus, Download, Upload, FileText, UserCheck, UserX, Trash2 } from 'lucide-react'
 
 const ROLES = ['admin','coach','trainer','doctor','therapist','receptionist','other']
 const ALL_PAGES = ['dashboard','calendar','sessions','customers','enrollments','packages','invoices','reports','members']
 
-const roleColors: Record<string, string> = {
-  admin: 'bg-red-50 text-red-600',
-  coach: 'bg-blue-50 text-blue-600',
-  trainer: 'bg-blue-50 text-blue-700',
-  doctor: 'bg-teal-50 text-teal-600',
-  therapist: 'bg-purple-50 text-purple-600',
-  receptionist: 'bg-green-50 text-green-600',
-  other: 'bg-gray-50 text-gray-500',
+const roleStyle = (role: string): React.CSSProperties => {
+  const map: Record<string, { background: string; color: string }> = {
+    admin:        { background: 'var(--danger-dim)',  color: 'var(--danger)'  },
+    coach:        { background: 'var(--primary-dim)', color: 'var(--primary)' },
+    trainer:      { background: 'var(--primary-dim)', color: 'var(--primary)' },
+    doctor:       { background: 'var(--teal-dim)',    color: 'var(--teal)'    },
+    therapist:    { background: 'var(--teal-dim)',    color: 'var(--teal)'    },
+    receptionist: { background: 'var(--green-dim)',   color: 'var(--green)'   },
+    other:        { background: 'var(--bg)',          color: 'var(--text-sec)'},
+  }
+  return map[role] || map.other
+}
+
+const inp: React.CSSProperties = {
+  border: '1px solid var(--border)', borderRadius: 12,
+  padding: '8px 12px', fontSize: 14, background: 'var(--bg)',
+  color: 'var(--ink)', outline: 'none',
 }
 
 export default function OrgTeamPage() {
@@ -38,6 +48,8 @@ export default function OrgTeamPage() {
     setLoading(false)
   }
 
+  function showMsg(text: string) { setMessage(text); setTimeout(() => setMessage(''), 4000) }
+
   async function handleAdd() {
     if (!form.email) return
     setAdding(true)
@@ -47,15 +59,10 @@ export default function OrgTeamPage() {
     })
     const d = await res.json()
     if (res.ok) {
-      setMessage(d.already_exists ? 'Member added and activated!' : 'Invitation sent!')
-      setShowForm(false)
-      setForm({ email: '', role: 'coach' })
-      load()
-    } else {
-      setMessage(d.error || 'Error')
-    }
+      showMsg(d.already_exists ? 'Member added and activated!' : 'Invitation sent!')
+      setShowForm(false); setForm({ email: '', role: 'coach' }); load()
+    } else { showMsg(d.error || 'Error') }
     setAdding(false)
-    setTimeout(() => setMessage(''), 4000)
   }
 
   async function handleSave(memberId: string) {
@@ -64,9 +71,7 @@ export default function OrgTeamPage() {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ member_id: memberId, role: editRole, allowed_pages: editAllowedPages })
     })
-    setEditId(null)
-    setSaving(null)
-    load()
+    setEditId(null); setSaving(null); load()
   }
 
   async function handleRemove(memberId: string) {
@@ -83,28 +88,18 @@ export default function OrgTeamPage() {
     load()
   }
 
-  const active = members.filter(m => m.status === 'active')
-  const pending = members.filter(m => m.status === 'pending')
-  const inactive = members.filter(m => m.status === 'inactive')
-
   function exportCSV() {
     const headers = ['email','role','status']
     const rows = members.map(m => [m.email, m.role, m.status])
-    const csv = [headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n')
+    const csv = ['\uFEFFsep=,', headers.join(','), ...rows.map(r => r.map(v => `"${v}"`).join(','))].join('\n')
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
     a.download = 'team.csv'; a.click()
   }
 
   function downloadTemplate() {
-    const csv = `email,role,allowed_pages
-# INSTRUCTIONS:
-# email: Required. Member email address
-# role: Required. admin / coach / trainer / doctor / therapist / receptionist / other
-# allowed_pages: Optional. Pages separated by | e.g. dashboard|calendar|sessions
-# Available pages: dashboard|calendar|sessions|customers|enrollments|packages|invoices|reports|members
-# Members will receive an invitation and activate on first login
-# Delete comment lines before importing
+    const csv = `\uFEFFsep=,
+email,role,allowed_pages
 coach@example.com,coach,dashboard|calendar
 trainer@example.com,trainer,dashboard|calendar|sessions
 doctor@example.com,doctor,dashboard|calendar|customers`
@@ -116,10 +111,7 @@ doctor@example.com,doctor,dashboard|calendar|customers`
   async function importCSV(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return
     const text = await file.text()
-    const lines = text.split('\n').filter(l => {
-      const trimmed = l.trim()
-      return trimmed && !trimmed.startsWith('#') && !trimmed.startsWith('\uFEFF#')
-    })
+    const lines = text.split('\n').filter(l => { const t = l.trim(); return t && !t.startsWith('#') && !t.startsWith('\uFEFF#') && !t.toLowerCase().startsWith('sep=') })
     if (lines.length < 2) { alert('No data found in file'); e.target.value = ''; return }
     const sep = lines[0].includes('\t') ? '\t' : ','
     const firstLine = lines[0].toLowerCase().replace(/"/g, '')
@@ -128,8 +120,7 @@ doctor@example.com,doctor,dashboard|calendar|customers`
     let success = 0, failed = 0, errors: string[] = []
     for (let i = dataStart; i < lines.length; i++) {
       const parts = lines[i].split(sep).map(p => p.trim().replace(/"/g, ''))
-      const email = parts[0] || ''
-      const role = parts[1] || 'coach'
+      const email = parts[0] || '', role = parts[1] || 'coach'
       const allowed_pages = parts[2] ? parts[2].split('|').map(p => p.trim()).filter(Boolean) : ['dashboard','calendar']
       if (!email || !email.includes('@')) { failed++; errors.push(`Row ${i+1}: Invalid email "${email}"`); continue }
       if (!ROLES.includes(role)) { failed++; errors.push(`Row ${i+1}: Invalid role "${role}"`); continue }
@@ -145,216 +136,236 @@ doctor@example.com,doctor,dashboard|calendar|customers`
     const msg = [`✅ Success: ${success}`, `❌ Failed: ${failed}`]
     if (errors.length) msg.push('\nErrors:\n' + errors.join('\n'))
     alert(msg.join('\n'))
-    e.target.value = ''
-    load()
+    e.target.value = ''; load()
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-bold text-gray-900">Team</h1>
-          <p className="text-xs text-gray-400">{active.length} active members</p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={downloadTemplate} className="border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">📋 Template</button>
-          <label className="cursor-pointer border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">
-            📥 Import
-            <input type="file" accept=".csv" onChange={importCSV} className="hidden" />
-          </label>
-          <button onClick={exportCSV} className="border border-gray-200 text-gray-600 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">📤 Export</button>
-          <button onClick={() => setShowForm(!showForm)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
-            + Add Member
-          </button>
-        </div>
-      </div>
+  const active   = members.filter(m => m.status === 'active')
+  const pending  = members.filter(m => m.status === 'pending')
+  const inactive = members.filter(m => m.status === 'inactive')
 
-      <div className="max-w-3xl mx-auto px-6 py-8">
-        {message && (
-          <div className="mb-4 px-4 py-3 rounded-xl bg-blue-50 text-blue-700 text-sm font-medium">{message}</div>
-        )}
-
-        {showForm && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-6">
-            <h2 className="text-sm font-bold text-gray-900 mb-3">Add Member by Email</h2>
-            <div className="flex gap-3">
-              <input value={form.email} onChange={e => setForm({...form, email: e.target.value})}
-                placeholder="Email address" type="email"
-                className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" />
-              <select value={form.role} onChange={e => setForm({...form, role: e.target.value})}
-                className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none">
-                {ROLES.filter(r => r !== 'admin').map(r => (
-                  <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
-                ))}
-              </select>
-              <button onClick={handleAdd} disabled={adding}
-                className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-50">
-                {adding ? '...' : 'Add'}
+  const MemberCard = ({ m, section }: { m: any; section: 'active' | 'pending' | 'inactive' }) => {
+    const initial = (m.users?.full_name || m.email || '?').charAt(0).toUpperCase()
+    return (
+      <div className="rounded-2xl p-4" style={{
+        background: 'var(--surface)', border: '1px solid var(--border)',
+        opacity: section === 'active' ? 1 : 0.65,
+      }}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+              style={{ background: 'var(--primary-dim)', color: 'var(--primary)' }}>
+              {initial}
+            </div>
+            <div>
+              {section !== 'pending' && (
+                <p className="text-sm font-bold" style={{ color: 'var(--ink)' }}>{m.users?.full_name || '—'}</p>
+              )}
+              <p className="text-xs" style={{ color: section === 'pending' ? 'var(--text-sec)' : 'var(--text-ter)' }}>{m.email}</p>
+              {section === 'pending' && (
+                <p className="text-xs font-semibold mt-0.5" style={{ color: 'var(--warn)' }}>Awaiting signup</p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={roleStyle(m.role)}>
+              {m.role}
+            </span>
+            {section === 'active' && (
+              <button onClick={() => { setEditId(m.id); setEditRole(m.role); setEditAllowedPages(m.allowed_pages || []) }}
+                className="text-xs font-semibold px-2.5 py-1 rounded-lg transition-all"
+                style={{ background: 'var(--bg)', color: 'var(--text-sec)', border: '1px solid var(--border)' }}>
+                {editId === m.id ? 'Close' : 'Edit'}
               </button>
-              <button onClick={() => setShowForm(false)}
-                className="border border-gray-200 text-gray-600 px-4 py-2 rounded-xl text-sm">
+            )}
+            {section === 'active' && (
+              <button onClick={() => toggleStatus(m.id, m.status)}
+                className="text-xs font-semibold px-2.5 py-1 rounded-lg transition-all"
+                style={{ background: 'var(--warn-dim)', color: 'var(--warn)' }}>
+                Deactivate
+              </button>
+            )}
+            {section === 'inactive' && (
+              <button onClick={() => toggleStatus(m.id, m.status)}
+                className="text-xs font-semibold px-2.5 py-1 rounded-lg transition-all"
+                style={{ background: 'var(--green-dim)', color: 'var(--green)' }}>
+                Activate
+              </button>
+            )}
+            <button onClick={() => handleRemove(m.id)}
+              className="flex items-center justify-center w-7 h-7 rounded-lg transition-all"
+              style={{ background: 'var(--danger-dim)', color: 'var(--danger)' }}>
+              <Trash2 size={13} />
+            </button>
+          </div>
+        </div>
+
+        {/* Edit Panel */}
+        {editId === m.id && (
+          <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--divider)' }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div>
+                <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-ter)' }}>ROLE</p>
+                <select value={editRole} onChange={e => setEditRole(e.target.value)}
+                  style={{ ...inp, fontSize: 13, padding: '6px 10px', cursor: 'pointer' }}>
+                  {ROLES.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
+                </select>
+              </div>
+            </div>
+            <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-ter)' }}>ALLOWED PAGES</p>
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              {ALL_PAGES.map(page => (
+                <label key={page} className="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox"
+                    checked={editAllowedPages.includes(page)}
+                    onChange={e => setEditAllowedPages(e.target.checked ? [...editAllowedPages, page] : editAllowedPages.filter(p => p !== page))}
+                    style={{ width: 14, height: 14, accentColor: 'var(--primary)', cursor: 'pointer' }} />
+                  <span className="text-xs capitalize" style={{ color: 'var(--text-sec)' }}>{page}</span>
+                </label>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => handleSave(m.id)} disabled={saving === m.id}
+                className="text-xs font-semibold px-4 py-1.5 rounded-lg text-white disabled:opacity-50"
+                style={{ background: 'var(--primary)' }}>
+                {saving === m.id ? 'Saving...' : 'Save'}
+              </button>
+              <button onClick={() => setEditId(null)}
+                className="text-xs font-semibold px-4 py-1.5 rounded-lg"
+                style={{ border: '1px solid var(--border)', color: 'var(--text-sec)', background: 'var(--bg)' }}>
                 Cancel
               </button>
             </div>
           </div>
         )}
-
-        {loading ? (
-          <div className="text-center py-12 text-gray-400">Loading...</div>
-        ) : (
-          <div className="space-y-6">
-            {/* Active */}
-            {active.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-gray-400 mb-2 px-1">ACTIVE</p>
-                <div className="space-y-2">
-                  {active.map(m => (
-                    <div key={m.id} className="bg-white rounded-2xl border border-gray-200 p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold text-sm">
-                            {(m.users?.full_name || m.email || '?').charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="text-sm font-semibold text-gray-900">{m.users?.full_name || '—'}</p>
-                            <p className="text-xs text-gray-400">{m.email}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleColors[m.role] || roleColors.other}`}>
-                            {m.role}
-                          </span>
-                          <button onClick={() => { setEditId(m.id); setEditRole(m.role); setEditAllowedPages(m.allowed_pages || []) }}
-                            className="text-xs px-2 py-1 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100">
-                            Edit
-                          </button>
-                          <button onClick={() => toggleStatus(m.id, m.status)}
-                            className="text-xs px-2 py-1 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100">
-                            Deactivate
-                          </button>
-                          <button onClick={() => handleRemove(m.id)}
-                            className="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-500 hover:bg-red-100">
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-
-                      {editId === m.id && (
-                        <div className="mt-4 pt-4 border-t border-gray-100">
-                          <div className="flex items-center gap-3 mb-4">
-                            <select value={editRole} onChange={e => setEditRole(e.target.value)}
-                              className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none">
-                              {ROLES.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
-                            </select>
-                          </div>
-                          <p className="text-xs font-semibold text-gray-500 mb-2">ALLOWED PAGES</p>
-                          <div className="grid grid-cols-3 gap-2 mb-4">
-                            {ALL_PAGES.map(page => (
-                              <label key={page} className="flex items-center gap-1.5 cursor-pointer">
-                                <input type="checkbox"
-                                  checked={editAllowedPages.includes(page)}
-                                  onChange={e => setEditAllowedPages(
-                                    e.target.checked
-                                      ? [...editAllowedPages, page]
-                                      : editAllowedPages.filter(p => p !== page)
-                                  )}
-                                  className="w-3.5 h-3.5 accent-blue-600" />
-                                <span className="text-xs text-gray-600 capitalize">{page}</span>
-                              </label>
-                            ))}
-                          </div>
-                          <div className="flex gap-2">
-                            <button onClick={() => handleSave(m.id)} disabled={saving === m.id}
-                              className="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50">
-                              {saving === m.id ? 'Saving...' : 'Save'}
-                            </button>
-                            <button onClick={() => setEditId(null)}
-                              className="border border-gray-200 text-gray-600 px-4 py-1.5 rounded-lg text-xs">
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Pending */}
-            {pending.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-gray-400 mb-2 px-1">PENDING — Not signed up yet</p>
-                <div className="space-y-2">
-                  {pending.map(m => (
-                    <div key={m.id} className="bg-white rounded-2xl border border-gray-100 p-4 opacity-70">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 font-bold text-sm">
-                            {m.email.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-500">{m.email}</p>
-                            <p className="text-xs text-amber-500">Awaiting signup</p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleColors[m.role] || roleColors.other}`}>
-                            {m.role}
-                          </span>
-                          <button onClick={() => handleRemove(m.id)}
-                            className="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-500 hover:bg-red-100">
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Inactive */}
-            {inactive.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-gray-400 mb-2 px-1">INACTIVE</p>
-                <div className="space-y-2">
-                  {inactive.map(m => (
-                    <div key={m.id} className="bg-white rounded-2xl border border-gray-100 p-4 opacity-60">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 font-bold text-sm">
-                            {(m.users?.full_name || m.email).charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-600">{m.users?.full_name || '—'}</p>
-                            <p className="text-xs text-gray-400">{m.email}</p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <button onClick={() => toggleStatus(m.id, m.status)}
-                            className="text-xs px-2 py-1 rounded-lg bg-green-50 text-green-600 hover:bg-green-100">
-                            Activate
-                          </button>
-                          <button onClick={() => handleRemove(m.id)}
-                            className="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-500 hover:bg-red-100">
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {members.length === 0 && (
-              <div className="text-center py-16 text-gray-400">No team members yet</div>
-            )}
-          </div>
-        )}
       </div>
+    )
+  }
+
+  return (
+    <div className="p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--ink)', letterSpacing: '-0.5px' }}>Team</h1>
+          <p className="text-sm mt-1" style={{ color: 'var(--text-ter)' }}>{active.length} active members</p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={downloadTemplate}
+            className="flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-xl transition-all"
+            style={{ border: '1px solid var(--border)', color: 'var(--text-sec)', background: 'var(--surface)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface)')}>
+            <FileText size={14} /> Template
+          </button>
+          <label className="flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-xl cursor-pointer transition-all"
+            style={{ border: '1px solid var(--border)', color: 'var(--text-sec)', background: 'var(--surface)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface)')}>
+            <Upload size={14} /> Import
+            <input type="file" accept=".csv" onChange={importCSV} className="hidden" />
+          </label>
+          <button onClick={exportCSV}
+            className="flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-xl transition-all"
+            style={{ border: '1px solid var(--border)', color: 'var(--text-sec)', background: 'var(--surface)' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface)')}>
+            <Download size={14} /> Export
+          </button>
+          <button onClick={() => setShowForm(!showForm)}
+            className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl text-white transition-all"
+            style={{ background: 'var(--primary)' }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
+            <Plus size={15} /> Add Member
+          </button>
+        </div>
+      </div>
+
+      {message && (
+        <div className="mb-4 px-4 py-3 rounded-xl text-sm font-semibold"
+          style={{ background: 'var(--primary-dim)', color: 'var(--primary)' }}>{message}</div>
+      )}
+
+      {/* Add form */}
+      {showForm && (
+        <div className="rounded-2xl p-5 mb-5" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <p className="text-sm font-bold mb-3" style={{ color: 'var(--ink)' }}>Add Member by Email</p>
+          <div className="flex gap-3">
+            <input value={form.email} onChange={e => setForm({...form, email: e.target.value})}
+              placeholder="Email address" type="email"
+              style={{ ...inp, flex: 1 }} />
+            <select value={form.role} onChange={e => setForm({...form, role: e.target.value})}
+              style={{ ...inp, cursor: 'pointer' }}>
+              {ROLES.filter(r => r !== 'admin').map(r => (
+                <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
+              ))}
+            </select>
+            <button onClick={handleAdd} disabled={adding}
+              className="text-sm font-semibold px-4 py-2 rounded-xl text-white disabled:opacity-50"
+              style={{ background: 'var(--primary)' }}>
+              {adding ? '...' : 'Add'}
+            </button>
+            <button onClick={() => setShowForm(false)}
+              className="text-sm font-semibold px-4 py-2 rounded-xl"
+              style={{ border: '1px solid var(--border)', color: 'var(--text-sec)', background: 'var(--bg)' }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="text-center py-16" style={{ color: 'var(--text-ter)' }}>Loading...</div>
+      ) : members.length === 0 ? (
+        <div className="text-center py-20">
+          <Users2 size={36} className="mx-auto mb-3" style={{ color: 'var(--border)' }} />
+          <p className="text-sm font-medium" style={{ color: 'var(--text-ter)' }}>No team members yet</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {active.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-2 px-1">
+                <UserCheck size={13} style={{ color: 'var(--green)' }} />
+                <p className="text-xs font-bold" style={{ color: 'var(--text-ter)', letterSpacing: '0.5px' }}>
+                  ACTIVE ({active.length})
+                </p>
+              </div>
+              <div className="space-y-2">
+                {active.map(m => <MemberCard key={m.id} m={m} section="active" />)}
+              </div>
+            </div>
+          )}
+
+          {pending.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-2 px-1">
+                <div className="w-2 h-2 rounded-full" style={{ background: 'var(--warn)' }} />
+                <p className="text-xs font-bold" style={{ color: 'var(--text-ter)', letterSpacing: '0.5px' }}>
+                  PENDING — Not signed up yet ({pending.length})
+                </p>
+              </div>
+              <div className="space-y-2">
+                {pending.map(m => <MemberCard key={m.id} m={m} section="pending" />)}
+              </div>
+            </div>
+          )}
+
+          {inactive.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-2 px-1">
+                <UserX size={13} style={{ color: 'var(--text-ter)' }} />
+                <p className="text-xs font-bold" style={{ color: 'var(--text-ter)', letterSpacing: '0.5px' }}>
+                  INACTIVE ({inactive.length})
+                </p>
+              </div>
+              <div className="space-y-2">
+                {inactive.map(m => <MemberCard key={m.id} m={m} section="inactive" />)}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

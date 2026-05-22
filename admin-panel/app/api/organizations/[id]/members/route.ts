@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { logAudit } from '@/lib/audit'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -73,6 +74,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       .select().single()
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    await logAudit({ action: 'create', entity_type: 'member', entity_id: data.id, organization_id: id, details: { email, role: data.role } })
     return NextResponse.json({ ...data, already_exists: !!existingUser })
   }
 
@@ -82,6 +84,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       .insert({ organization_id: id, user_id, email, role: role || 'coach', status: status || 'active' })
       .select().single()
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    await logAudit({ action: 'create', entity_type: 'member', entity_id: data.id, organization_id: id, details: { email, role: data.role } })
     return NextResponse.json(data)
   }
 
@@ -102,5 +105,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .eq('organization_id', id)
     .select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await logAudit({ action: 'update', entity_type: 'member', entity_id: member_id, organization_id: id, details: { role: data.role, status: data.status } })
   return NextResponse.json(data)
 }

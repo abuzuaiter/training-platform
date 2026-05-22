@@ -33,8 +33,9 @@ class MyApp extends StatelessWidget {
         Locale('ar'),
       ],
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF185FA5)),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6FA3C5)),
         useMaterial3: true,
+        fontFamily: 'PlusJakartaSans',
       ),
       home: const AuthGate(),
     );
@@ -52,7 +53,7 @@ class AuthGate extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(
-              child: CircularProgressIndicator(color: Color(0xFF185FA5)),
+              child: CircularProgressIndicator(color: Color(0xFF6FA3C5)),
             ),
           );
         }

@@ -27,15 +27,37 @@ export async function POST(req: NextRequest) {
   if (SUPER_ADMIN_EMAILS.includes(email.toLowerCase())) {
     role = 'super_admin'
   } else {
-    // Check if org admin
-    const { data: adminMembership } = await supabaseAdmin
+    // Check if org admin (no status filter — admin record may still be 'pending')
+    let adminMembership: { organization_id: string; role: string } | null = null
+    const { data: adminById, error: adminByIdError } = await supabaseAdmin
       .from('organization_members')
       .select('organization_id, role')
       .eq('user_id', data.user.id)
       .eq('role', 'admin')
-      .eq('status', 'active')
       .limit(1)
       .maybeSingle()
+    console.log('[login] adminById:', adminById, 'error:', adminByIdError)
+    if (adminById) {
+      adminMembership = adminById
+    } else {
+      // Fallback: match by email (user_id may still be null if never updated)
+      const { data: adminByEmail, error: adminByEmailError } = await supabaseAdmin
+        .from('organization_members')
+        .select('organization_id, role, id')
+        .eq('email', email.toLowerCase())
+        .eq('role', 'admin')
+        .limit(1)
+        .maybeSingle()
+      console.log('[login] adminByEmail:', adminByEmail, 'error:', adminByEmailError)
+      if (adminByEmail) {
+        // Link user_id now
+        await supabaseAdmin
+          .from('organization_members')
+          .update({ user_id: data.user.id, status: 'active' })
+          .eq('id', (adminByEmail as any).id)
+        adminMembership = adminByEmail
+      }
+    }
 
     if (adminMembership) {
       role = 'org_admin'
@@ -69,12 +91,11 @@ export async function POST(req: NextRequest) {
           .eq('id', pendingMember.id).single()
         permissions = { member_role: pendingMember.role, allowed_pages: pendingFull?.allowed_pages || ['dashboard','calendar'] }
       } else {
-        // Check if already active member
+        // Check if already active member (no status filter)
         const { data: activeMember } = await supabaseAdmin
           .from('organization_members')
           .select('organization_id, role')
           .eq('user_id', data.user.id)
-          .eq('status', 'active')
           .limit(1)
           .maybeSingle()
 
@@ -85,7 +106,6 @@ export async function POST(req: NextRequest) {
             .from('organization_members')
             .select('role, allowed_pages')
             .eq('user_id', data.user.id)
-            .eq('status', 'active')
             .limit(1).maybeSingle()
           permissions = { member_role: activeFull?.role || activeMember.role, allowed_pages: activeFull?.allowed_pages || ['dashboard','calendar'] }
         } else {
@@ -112,7 +132,8 @@ export async function POST(req: NextRequest) {
   try {
     await supabaseAdmin.from('audit_logs').insert({
       user_email: email, action: 'login', entity_type: 'auth',
-      entity_id: data.user.id, details: { role }
+      entity_id: data.user.id, details: { role },
+      organization_id: organization_id || null,
     })
   } catch (e) {}
 

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { logAudit } from '@/lib/audit'
 const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -27,5 +28,6 @@ export async function POST(req: NextRequest) {
     is_active: true
   }).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await logAudit({ action: 'create', entity_type: 'package', entity_id: data.id, organization_id: data.organization_id, details: { name: data.name, price: data.price } })
   return NextResponse.json(data)
 }
